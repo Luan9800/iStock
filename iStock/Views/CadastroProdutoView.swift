@@ -20,6 +20,7 @@ struct CadastroProdutoView: View {
     @State private var condicaoPercentual: Double = 100
     @State private var valor: Double = 0
     @State private var salvo = false
+    @State private var salvando = false
 
     var body: some View {
         ScrollView {
@@ -27,7 +28,6 @@ struct CadastroProdutoView: View {
                 Text("Cadastrar Produto")
                     .font(.largeTitle.bold())
 
-                // Ícone do produto — igual você pediu: iPhone, iPad, Watch, etc.
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 12) {
                     ForEach(TipoProduto.allCases) { tipo in
                         Button {
@@ -52,6 +52,8 @@ struct CadastroProdutoView: View {
                         .buttonStyle(.plain)
                     }
                 }
+
+                GaleriaModeloView(tipo: tipoProduto, criadoPor: auth.nomeOuEmail)
 
                 TextField("Nome / descrição do produto", text: $nome)
                     .textFieldStyle(.roundedBorder)
@@ -78,14 +80,21 @@ struct CadastroProdutoView: View {
                     salvar()
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(nome.isEmpty || valor <= 0)
+                .disabled(nome.isEmpty || valor <= 0 || salvando)
             }
             .padding(24)
         }
-        .frame(minWidth: 450, minHeight: 500)
+        .overlay {
+            if salvando {
+                ProgressView("Salvando...")
+                    .padding()
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+            }
+        }
     }
 
     private func salvar() {
+        salvando = true
         let item = Lancamento(
             nome: nome,
             tipoProduto: tipoProduto,
@@ -94,8 +103,13 @@ struct CadastroProdutoView: View {
             valor: valor,
             criadoPor: auth.nomeOuEmail
         )
+
         service.salvar(item)
-        nome = ""; lacrado = false; condicaoPercentual = 100; valor = 0
+        nome = ""
+        lacrado = false
+        condicaoPercentual = 100
+        valor = 0
+        salvando = false
         salvo = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { salvo = false }
     }

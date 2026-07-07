@@ -28,7 +28,7 @@ struct iStockApp: App {
 
     var body: some Scene {
         WindowGroup {
-            CadastroProdutoView()
+            MainView()
         }
     }
 }
