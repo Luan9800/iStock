@@ -35,6 +35,13 @@ enum Formatters {
         return f
     }()
 
+    static let dataTransacao: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "pt_BR")
+        f.dateFormat = "dd/MM/yyyy HH:mm:ss"
+        return f
+    }()
+
     static let arquivoData: DateFormatter = {
         let f = DateFormatter()
         f.locale = Locale(identifier: "pt_BR")

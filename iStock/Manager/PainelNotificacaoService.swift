@@ -12,6 +12,7 @@ import UserNotifications
 @MainActor
 final class PainelNotificacaoService: ObservableObject {
     static let shared = PainelNotificacaoService()
+    static let limiteExibicao = 5
 
     @Published private(set) var notificacoes: [NotificacaoPainel] = []
     @Published private(set) var sugestoes: [SugestaoPainel] = []
@@ -27,6 +28,18 @@ final class PainelNotificacaoService: ObservableObject {
 
     var naoLidas: [NotificacaoPainel] {
         notificacoes.filter { !$0.lida }
+    }
+
+    var notificacoesRecentes: [NotificacaoPainel] {
+        Array(notificacoes.prefix(Self.limiteExibicao))
+    }
+
+    var sugestoesRecentes: [SugestaoPainel] {
+        Array(sugestoes.prefix(Self.limiteExibicao))
+    }
+
+    var possuiItensParaExportar: Bool {
+        notificacoes.count > Self.limiteExibicao || sugestoes.count > Self.limiteExibicao
     }
 
     func verificarAvaliacoes(_ avaliacoes: [Avaliacao]) {
@@ -83,6 +96,67 @@ final class PainelNotificacaoService: ObservableObject {
 
     func atualizarSugestoes() {
         sugestoes = RelatorioAnaliseService.gerar().sugestoes
+    }
+
+    func exportarCSV() -> URL? {
+        guard !notificacoes.isEmpty || !sugestoes.isEmpty else { return nil }
+
+        var linhas: [String] = []
+
+        linhas.append("NOTIFICAÇÕES")
+        linhas.append("Data;Tipo;Título;Mensagem;Lida;Referência")
+        for item in notificacoes {
+            let campos = [
+                Formatters.dataTransacao.string(from: item.data),
+                item.tipo.rawValue,
+                item.titulo,
+                item.mensagem,
+                item.lida ? "Sim" : "Não",
+                item.referenciaId ?? ""
+            ]
+            linhas.append(campos.map(csvCampo).joined(separator: ";"))
+        }
+
+        linhas.append("")
+        linhas.append("SUGESTÕES")
+        linhas.append("Prioridade;Título;Mensagem")
+        for item in sugestoes {
+            let campos = [
+                rotuloPrioridade(item.prioridade),
+                item.titulo,
+                item.mensagem
+            ]
+            linhas.append(campos.map(csvCampo).joined(separator: ";"))
+        }
+
+        let conteudo = linhas.joined(separator: "\n")
+        let diretorio = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("exportacoes", isDirectory: true)
+
+        do {
+            try FileManager.default.createDirectory(at: diretorio, withIntermediateDirectories: true)
+            let nome = "notificacoes-sugestoes-\(Formatters.arquivoData.string(from: .now)).csv"
+            let url = diretorio.appendingPathComponent(nome)
+            try conteudo.write(to: url, atomically: true, encoding: .utf8)
+            return url
+        } catch {
+            return nil
+        }
+    }
+
+    private func rotuloPrioridade(_ prioridade: SugestaoPainel.PrioridadeSugestao) -> String {
+        switch prioridade {
+        case .alta: return "Alta"
+        case .media: return "Média"
+        case .baixa: return "Baixa"
+        }
+    }
+
+    private func csvCampo(_ texto: String) -> String {
+        if texto.contains(";") || texto.contains("\"") || texto.contains("\n") {
+            return "\"\(texto.replacingOccurrences(of: "\"", with: "\"\""))\""
+        }
+        return texto
     }
 
     private func adicionar(tipo: TipoNotificacaoPainel, titulo: String, mensagem: String, referenciaId: String?) {

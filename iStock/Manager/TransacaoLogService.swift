@@ -13,6 +13,7 @@ import Foundation
 @MainActor
 final class TransacaoLogService: ObservableObject {
     static let shared = TransacaoLogService()
+    static let limiteExibicao = 5
 
     @Published var transacoes: [LogTransacao] = []
     @Published var erro: String?
@@ -87,6 +88,48 @@ final class TransacaoLogService: ObservableObject {
     }
 
     var recentes: [LogTransacao] {
-        Array(transacoes.prefix(20))
+        Array(transacoes.prefix(Self.limiteExibicao))
+    }
+
+    func exportarCSV() -> URL? {
+        guard !transacoes.isEmpty else { return nil }
+
+        var linhas = ["Data;Tipo;Título;Detalhes;Valor;Valor anterior;Usuário;Referência"]
+        for item in transacoes {
+            let campos = [
+                Formatters.dataTransacao.string(from: item.data),
+                item.tipo.rawValue,
+                item.titulo,
+                item.detalhes ?? "",
+                item.valor.map { String(format: "%.2f", $0) } ?? "",
+                item.valorAnterior.map { String(format: "%.2f", $0) } ?? "",
+                item.usuario ?? "",
+                item.referenciaId ?? ""
+            ]
+            linhas.append(campos.map(csvCampo).joined(separator: ";"))
+        }
+
+        let conteudo = linhas.joined(separator: "\n")
+        let diretorio = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("exportacoes", isDirectory: true)
+
+        do {
+            try FileManager.default.createDirectory(at: diretorio, withIntermediateDirectories: true)
+            let nome = "log-transacoes-\(Formatters.arquivoData.string(from: .now)).csv"
+            let url = diretorio.appendingPathComponent(nome)
+            try conteudo.write(to: url, atomically: true, encoding: .utf8)
+            erro = nil
+            return url
+        } catch {
+            self.erro = error.localizedDescription
+            return nil
+        }
+    }
+
+    private func csvCampo(_ texto: String) -> String {
+        if texto.contains(";") || texto.contains("\"") || texto.contains("\n") {
+            return "\"\(texto.replacingOccurrences(of: "\"", with: "\"\""))\""
+        }
+        return texto
     }
 }

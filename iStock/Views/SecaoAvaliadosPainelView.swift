@@ -6,6 +6,11 @@
 //
 
 import SwiftUI
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
 
 struct SecaoAvaliadosPainelView: View {
     @ObservedObject private var service = AvaliacaoService.shared
@@ -328,6 +333,11 @@ struct CartaoAvaliadoPainelView: View {
 
 struct SecaoLogTransacoesView: View {
     @ObservedObject private var log = TransacaoLogService.shared
+    @State private var exportando = false
+    @State private var mensagemExport: String?
+
+    private var total: Int { log.transacoes.count }
+    private var exibeExportar: Bool { total > TransacaoLogService.limiteExibicao }
 
     var body: some View {
         CartaoVidroView {
@@ -337,9 +347,26 @@ struct SecaoLogTransacoesView: View {
                         .font(.headline)
                         .foregroundStyle(.white)
                     Spacer()
-                    Text("\(log.transacoes.count)")
+                    if exibeExportar {
+                        Button {
+                            exportarLog()
+                        } label: {
+                            Label(exportando ? "Exportando..." : "Exportar", systemImage: "square.and.arrow.up")
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(AppTheme.azulClaro)
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(exportando)
+                    }
+                    Text(contadorTexto)
                         .font(.caption.bold())
                         .foregroundStyle(AppTheme.azulClaro)
+                }
+
+                if let mensagemExport {
+                    Label(mensagemExport, systemImage: "checkmark.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.green)
                 }
 
                 if log.recentes.isEmpty {
@@ -347,7 +374,7 @@ struct SecaoLogTransacoesView: View {
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.45))
                 } else {
-                    ForEach(log.recentes.prefix(10)) { item in
+                    ForEach(log.recentes) { item in
                         HStack(alignment: .top, spacing: 10) {
                             Image(systemName: item.tipo.icone)
                                 .font(.caption)
@@ -364,7 +391,7 @@ struct SecaoLogTransacoesView: View {
                                         .font(.caption2)
                                         .foregroundStyle(.white.opacity(0.45))
                                 }
-                                Text(Formatters.dataCurta.string(from: item.data))
+                                Text(Formatters.dataTransacao.string(from: item.data))
                                     .font(.caption2)
                                     .foregroundStyle(.white.opacity(0.35))
                             }
@@ -382,5 +409,26 @@ struct SecaoLogTransacoesView: View {
                 }
             }
         }
+    }
+
+    private var contadorTexto: String {
+        if total > TransacaoLogService.limiteExibicao {
+            return "\(TransacaoLogService.limiteExibicao) de \(total)"
+        }
+        return "\(total)"
+    }
+
+    private func exportarLog() {
+        exportando = true
+        mensagemExport = nil
+        if let url = log.exportarCSV() {
+            #if os(macOS)
+            NSWorkspace.shared.open(url)
+            #else
+            UIApplication.shared.open(url)
+            #endif
+            mensagemExport = "Log exportado (\(total) transações)"
+        }
+        exportando = false
     }
 }
