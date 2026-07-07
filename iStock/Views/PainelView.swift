@@ -20,6 +20,8 @@ struct PainelView: View {
                     SecaoNotificacoesPainelView()
                 }
 
+                SecaoAtividadeRecenteView()
+
                 Text("Financeiro")
                     .font(.headline)
                     .foregroundStyle(.white)

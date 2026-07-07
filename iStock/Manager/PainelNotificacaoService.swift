@@ -38,8 +38,12 @@ final class PainelNotificacaoService: ObservableObject {
         Array(sugestoes.prefix(Self.limiteExibicao))
     }
 
-    var possuiItensParaExportar: Bool {
-        notificacoes.count > Self.limiteExibicao || sugestoes.count > Self.limiteExibicao
+    var possuiSugestoesParaExportar: Bool {
+        sugestoes.count > Self.limiteExibicao
+    }
+
+    var possuiNotificacoesParaExportar: Bool {
+        notificacoes.count > Self.limiteExibicao
     }
 
     func verificarAvaliacoes(_ avaliacoes: [Avaliacao]) {
@@ -98,13 +102,26 @@ final class PainelNotificacaoService: ObservableObject {
         sugestoes = RelatorioAnaliseService.gerar().sugestoes
     }
 
-    func exportarCSV() -> URL? {
-        guard !notificacoes.isEmpty || !sugestoes.isEmpty else { return nil }
+    func exportarSugestoesCSV() -> URL? {
+        guard !sugestoes.isEmpty else { return nil }
 
-        var linhas: [String] = []
+        var linhas = ["Prioridade;Título;Mensagem"]
+        for item in sugestoes {
+            let campos = [
+                rotuloPrioridade(item.prioridade),
+                item.titulo,
+                item.mensagem
+            ]
+            linhas.append(campos.map(csvCampo).joined(separator: ";"))
+        }
 
-        linhas.append("NOTIFICAÇÕES")
-        linhas.append("Data;Tipo;Título;Mensagem;Lida;Referência")
+        return salvarCSV(linhas: linhas, nome: "sugestoes-\(Formatters.arquivoData.string(from: .now)).csv")
+    }
+
+    func exportarNotificacoesCSV() -> URL? {
+        guard !notificacoes.isEmpty else { return nil }
+
+        var linhas = ["Data;Tipo;Título;Mensagem;Lida;Referência"]
         for item in notificacoes {
             let campos = [
                 Formatters.dataTransacao.string(from: item.data),
@@ -117,25 +134,16 @@ final class PainelNotificacaoService: ObservableObject {
             linhas.append(campos.map(csvCampo).joined(separator: ";"))
         }
 
-        linhas.append("")
-        linhas.append("SUGESTÕES")
-        linhas.append("Prioridade;Título;Mensagem")
-        for item in sugestoes {
-            let campos = [
-                rotuloPrioridade(item.prioridade),
-                item.titulo,
-                item.mensagem
-            ]
-            linhas.append(campos.map(csvCampo).joined(separator: ";"))
-        }
+        return salvarCSV(linhas: linhas, nome: "atividade-recente-\(Formatters.arquivoData.string(from: .now)).csv")
+    }
 
+    private func salvarCSV(linhas: [String], nome: String) -> URL? {
         let conteudo = linhas.joined(separator: "\n")
         let diretorio = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("exportacoes", isDirectory: true)
 
         do {
             try FileManager.default.createDirectory(at: diretorio, withIntermediateDirectories: true)
-            let nome = "notificacoes-sugestoes-\(Formatters.arquivoData.string(from: .now)).csv"
             let url = diretorio.appendingPathComponent(nome)
             try conteudo.write(to: url, atomically: true, encoding: .utf8)
             return url
