@@ -6,6 +6,7 @@
 //
 
 import Combine
+import FirebaseAuth
 import FirebaseFirestore
 import Foundation
 
@@ -15,20 +16,38 @@ final class ModeloFotoService: ObservableObject {
     static let maxFotosPorModelo = 100
 
     @Published var fotos: [ModeloFoto] = []
+    @Published var erro: String?
 
     private let colecao = Firestore.firestore().collection("modelo_fotos")
+    private var listener: ListenerRegistration?
 
-    private init() {
-        colecao.order(by: "data", descending: true)
+    private init() {}
+
+    func iniciarListener() {
+        guard listener == nil else { return }
+
+        listener = colecao.order(by: "data", descending: true)
             .addSnapshotListener { [weak self] resultado, erro in
-                if let erro {
-                    print("Erro ao buscar fotos de modelo: \(erro.localizedDescription)")
-                    return
+                Task { @MainActor in
+                    guard let self else { return }
+                    if let erro {
+                        self.erro = erro.localizedDescription
+                        print("Erro ao buscar fotos de modelo: \(erro.localizedDescription)")
+                        return
+                    }
+                    self.erro = nil
+                    self.fotos = resultado?.documents.compactMap {
+                        try? $0.data(as: ModeloFoto.self)
+                    } ?? []
                 }
-                self?.fotos = resultado?.documents.compactMap {
-                    try? $0.data(as: ModeloFoto.self)
-                } ?? []
             }
+    }
+
+    func pararListener() {
+        listener?.remove()
+        listener = nil
+        fotos = []
+        erro = nil
     }
 
     func fotos(para tipo: TipoProduto) -> [ModeloFoto] {
@@ -40,7 +59,13 @@ final class ModeloFotoService: ObservableObject {
     }
 
     func adicionar(tipo: TipoProduto, imagemData: Data, criadoPor: String?) async -> Bool {
+        guard Auth.auth().currentUser != nil else {
+            erro = "Faça login na aba Nuvem para enviar fotos."
+            return false
+        }
+
         guard podeAdicionar(tipo: tipo) else { return false }
+
         let id = UUID().uuidString
         let path = "modelos/\(tipo.rawValue)/\(id).jpg"
 
@@ -53,8 +78,10 @@ final class ModeloFotoService: ObservableObject {
                 criadoPor: criadoPor
             )
             try colecao.addDocument(from: foto)
+            erro = nil
             return true
         } catch {
+            erro = error.localizedDescription
             print("Erro ao adicionar foto do modelo: \(error.localizedDescription)")
             return false
         }
@@ -66,7 +93,9 @@ final class ModeloFotoService: ObservableObject {
         do {
             try await ImageStorageService.shared.delete(path: foto.fotoPath)
             try await colecao.document(id).delete()
+            erro = nil
         } catch {
+            erro = error.localizedDescription
             print("Erro ao remover foto do modelo: \(error.localizedDescription)")
         }
     }

@@ -7,10 +7,19 @@
 
 import SwiftUI
 import FirebaseCore
+import GoogleSignIn
 
 @main
 struct iStockApp: App {
+    @StateObject private var auth: AuthService
+
     init() {
+        Self.configureFirebase()
+        _auth = StateObject(wrappedValue: AuthService.shared)
+        AuthService.shared.configurarListenerSeNecessario()
+    }
+
+    private static func configureFirebase() {
         let env = ProcessInfo.processInfo.environment
         let estaEmPreview = env["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
             || env["XCODE_RUNNING_FOR_PLAYGROUNDS"] == "1"
@@ -23,12 +32,24 @@ struct iStockApp: App {
         if FirebaseApp.app() == nil {
             FirebaseApp.configure()
         }
+        KeychainConfigurator.configurarAposFirebase()
+        GoogleSignInHelper.configurar()
         print("✅ Firebase conectado com sucesso!")
     }
 
     var body: some Scene {
         WindowGroup {
-            MainView()
+            Group {
+                if auth.estaLogado {
+                    MainView()
+                } else {
+                    LoginView()
+                }
+            }
+            .onOpenURL { url in
+                GIDSignIn.sharedInstance.handle(url)
+            }
+            .preferredColorScheme(.dark)
         }
     }
 }

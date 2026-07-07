@@ -47,10 +47,11 @@ struct GaleriaModeloView: View {
             HStack {
                 Text("Fotos do \(tipo.rawValue)")
                     .font(.headline)
+                    .foregroundStyle(.white)
                 Spacer()
                 Text(contagemFotos)
                     .font(.caption)
-                    .foregroundStyle(podeAdicionar ? Color.secondary : Color.orange)
+                    .foregroundStyle(podeAdicionar ? .white.opacity(0.5) : .orange)
                 if enviando {
                     ProgressView()
                         .controlSize(.small)
@@ -64,7 +65,7 @@ struct GaleriaModeloView: View {
             } else if fotosDoTipo.isEmpty && !enviando {
                 Text("Nenhuma foto adicionada para este modelo.")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.45))
             }
 
             LazyVGrid(columns: colunas, spacing: 12) {
@@ -80,7 +81,11 @@ struct GaleriaModeloView: View {
             }
         }
         .padding(16)
-        .background(Color.gray.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+        .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        }
         .animation(.easeInOut(duration: 0.2), value: tipo)
         .animation(.easeInOut(duration: 0.2), value: fotosDoTipo.count)
         .alert("Limite atingido", isPresented: $limiteAtingido) {
@@ -127,14 +132,14 @@ struct GaleriaModeloView: View {
             Text("Adicionar")
                 .font(.caption)
         }
-        .foregroundStyle(.blue)
+        .foregroundStyle(AppTheme.azulClaro)
         .frame(maxWidth: .infinity)
         .frame(height: 100)
-        .background(Color.blue.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+        .background(AppTheme.azulPrimario.opacity(0.1), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [6]))
-                .foregroundStyle(Color.blue.opacity(0.4))
+                .foregroundStyle(AppTheme.azulClaro.opacity(0.5))
         )
     }
 

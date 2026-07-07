@@ -16,10 +16,10 @@ final class ImageStorageService {
 
     private init() {}
 
-    func upload(data: Data, path: String) async throws -> URL {
+    func upload(data: Data, path: String, contentType: String = "image/jpeg") async throws -> URL {
         let ref = storage.child(path)
         let metadata = StorageMetadata()
-        metadata.contentType = "image/jpeg"
+        metadata.contentType = contentType
 
         _ = try await ref.putDataAsync(data, metadata: metadata)
         return try await ref.downloadURL()

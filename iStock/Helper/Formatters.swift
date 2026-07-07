@@ -27,4 +27,18 @@ enum Formatters {
         f.dateFormat = "dd/MM/yy"
         return f
     }()
+
+    static let dataCompleta: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "pt_BR")
+        f.dateFormat = "dd/MM/yyyy HH:mm"
+        return f
+    }()
+
+    static let arquivoData: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "pt_BR")
+        f.dateFormat = "yyyy-MM-dd-HHmm"
+        return f
+    }()
 }

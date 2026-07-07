@@ -1,0 +1,406 @@
+//
+//  AvaliacaoService.swift
+//  iStock
+//
+//  Created by Berg Limma on 07/07/26.
+//
+
+import Combine
+import FirebaseAuth
+import FirebaseFirestore
+import Foundation
+
+@MainActor
+final class AvaliacaoService: ObservableObject {
+    static let shared = AvaliacaoService()
+
+    @Published var avaliacoes: [Avaliacao] = []
+    @Published var erro: String?
+
+    private let colecao = Firestore.firestore().collection("avaliacoes")
+    private var listener: ListenerRegistration?
+
+    private init() {}
+
+    var emAvaliacao: [Avaliacao] {
+        avaliacoes.filter { $0.status == .emAvaliacao }
+    }
+
+    var avaliadas: [Avaliacao] {
+        avaliacoes.filter { $0.status == .avaliado }
+    }
+
+    var aprovadas: [Avaliacao] {
+        avaliacoes.filter { $0.status == .aprovado }
+    }
+
+    var aprovadasSemPagamento: [Avaliacao] {
+        aprovadas.filter { !$0.pagamentoAprovado }
+    }
+
+    var comPagamentoAprovado: [Avaliacao] {
+        avaliacoes.filter { $0.pagamentoAprovado }
+    }
+
+    var totalCompradoAprovado: Double {
+        aprovadas.reduce(0) { $0 + $1.valorCompra }
+    }
+
+    var totalPagamentoPendente: Double {
+        aprovadasSemPagamento.reduce(0) { $0 + $1.valorCompra }
+    }
+
+    var totalPagamentoAprovado: Double {
+        comPagamentoAprovado.reduce(0) { $0 + $1.valorCompra }
+    }
+
+    var avaliadasComEstimativa: [Avaliacao] {
+        avaliacoes.filter { $0.status == .avaliado && $0.valorEstimado != nil }
+    }
+
+    var totalEstimadoAvaliadas: Double {
+        avaliadasComEstimativa.reduce(0) { $0 + ($1.valorEstimado ?? 0) }
+    }
+
+    var totalVendaRealAvaliadas: Double {
+        avaliadasComEstimativa.reduce(0) { $0 + $1.valorVendaExibicao }
+    }
+
+    func iniciarListener() {
+        guard listener == nil else { return }
+
+        listener = colecao.order(by: "data", descending: true)
+            .addSnapshotListener { [weak self] resultado, erro in
+                Task { @MainActor in
+                    guard let self else { return }
+                    if let erro {
+                        self.erro = erro.localizedDescription
+                        return
+                    }
+                    self.erro = nil
+                    self.avaliacoes = resultado?.documents.compactMap {
+                        try? $0.data(as: Avaliacao.self)
+                    } ?? []
+                    PainelNotificacaoService.shared.verificarAvaliacoes(self.avaliacoes)
+                    RelatorioMensalService.shared.atualizarRelatorioAtual()
+                }
+            }
+    }
+
+    func carregarLocal() {
+        pararListener(mantendoDados: false)
+        avaliacoes = LocalAvaliacaoStore.shared.carregar()
+        PainelNotificacaoService.shared.verificarAvaliacoes(avaliacoes)
+        RelatorioMensalService.shared.atualizarRelatorioAtual()
+    }
+
+    func pararListener(mantendoDados: Bool = false) {
+        listener?.remove()
+        listener = nil
+        if !mantendoDados { avaliacoes = [] }
+        erro = nil
+    }
+
+    @discardableResult
+    func salvar(_ item: Avaliacao) -> Bool {
+        salvarRetornandoID(item) != nil
+    }
+
+    func salvarRetornandoID(_ item: Avaliacao) -> String? {
+        var preparado = item
+        preparado.problemasModelo = problemasPara(preparado)
+        if AuthService.shared.usandoLoginLocal { return salvarLocalRetornandoID(preparado) }
+        return salvarNuvemRetornandoID(preparado)
+    }
+
+    @discardableResult
+    func atualizar(_ item: Avaliacao) -> Bool {
+        if AuthService.shared.usandoLoginLocal { return atualizarLocal(item) }
+        return atualizarNuvem(item)
+    }
+
+    func remover(_ item: Avaliacao) {
+        if AuthService.shared.usandoLoginLocal {
+            removerLocal(item)
+        } else {
+            guard let id = item.id else { return }
+            colecao.document(id).delete()
+        }
+    }
+
+    @discardableResult
+    func removerComAutorizacaoAdmin(_ item: Avaliacao, senha: String, confirmacaoSenha: String?) -> Bool {
+        let resultado = AdminService.shared.autorizar(senha, confirmacao: confirmacaoSenha)
+        switch resultado {
+        case .failure(let erro):
+            self.erro = erro.localizedDescription
+            return false
+        case .success:
+            break
+        }
+
+        let titulo = item.tituloExibicao
+        remover(item)
+        TransacaoLogService.shared.registrar(
+            tipo: .avaliacaoExcluida,
+            titulo: "Avaliação excluída: \(titulo)",
+            detalhes: "Exclusão autorizada por administrador.",
+            valor: item.valorVendaExibicao,
+            referenciaId: item.id
+        )
+        erro = nil
+        return true
+    }
+
+    @discardableResult
+    func registrarValorVendaReal(_ item: Avaliacao, valor: Double) -> Bool {
+        guard valor > 0 else {
+            erro = "Informe um valor de venda válido."
+            return false
+        }
+
+        var atualizado = item
+        let anterior = item.valorVendaReal ?? item.valorEstimado
+        atualizado.valorVendaReal = valor
+        atualizado.dataVendaReal = .now
+
+        guard atualizar(atualizado) else { return false }
+
+        TransacaoLogService.shared.registrar(
+            tipo: .valorVendaAtualizado,
+            titulo: "Venda real: \(item.tituloExibicao)",
+            detalhes: anterior.map { "Estimativa: \(Formatters.brl($0)) → Real: \(Formatters.brl(valor))" },
+            valor: valor,
+            valorAnterior: anterior,
+            referenciaId: item.id
+        )
+        return true
+    }
+
+    @discardableResult
+    func executarAvaliacao(_ item: Avaliacao) -> Bool {
+        guard item.status == .emAvaliacao else { return false }
+        let resultado = AvaliacaoPrecificador.estimar(item)
+
+        var atualizado = item
+        atualizado.status = .avaliado
+        atualizado.valorEstimado = resultado.valorVenda
+        atualizado.valorCompraSugerido = resultado.valorCompra
+        atualizado.dataAvaliacao = .now
+        atualizado.problemasModelo = problemasPara(atualizado)
+        let nota = resultado.detalhes
+        if let obs = item.observacoes, !obs.isEmpty {
+            atualizado.observacoes = obs + "\n" + nota
+        } else {
+            atualizado.observacoes = nota
+        }
+
+        guard atualizar(atualizado) else { return false }
+        TransacaoLogService.shared.registrar(
+            tipo: .avaliacaoConcluida,
+            titulo: "Avaliação: \(item.tituloExibicao)",
+            detalhes: "Estimativa de venda registrada.",
+            valor: resultado.valorVenda,
+            valorAnterior: nil,
+            referenciaId: atualizado.id
+        )
+        return true
+    }
+
+    @discardableResult
+    func aprovarCompra(_ item: Avaliacao) -> Bool {
+        guard item.status == .avaliado else { return false }
+
+        var atualizado = item
+        atualizado.status = .aprovado
+        atualizado.dataAprovacao = .now
+        guard atualizar(atualizado) else { return false }
+        TransacaoLogService.shared.registrar(
+            tipo: .compraAprovada,
+            titulo: "Compra aprovada: \(item.tituloExibicao)",
+            valor: item.valorCompra,
+            referenciaId: item.id
+        )
+        return true
+    }
+
+    @discardableResult
+    func aprovarPagamento(_ item: Avaliacao) -> Bool {
+        guard item.status == .aprovado, !item.pagamentoAprovado else { return false }
+
+        var atualizado = item
+        atualizado.pagamentoAprovado = true
+        atualizado.dataPagamento = .now
+        guard atualizar(atualizado) else { return false }
+        TransacaoLogService.shared.registrar(
+            tipo: .pagamentoAprovado,
+            titulo: "Pagamento aprovado: \(item.tituloExibicao)",
+            valor: item.valorCompra,
+            referenciaId: item.id
+        )
+        return true
+    }
+
+    @discardableResult
+    func converterParaEstoque(_ item: Avaliacao) -> Bool {
+        guard item.status == .aprovado, item.pagamentoAprovado else {
+            if item.status == .aprovado && !item.pagamentoAprovado {
+                erro = "Aprove o pagamento antes de adicionar ao estoque."
+            }
+            return false
+        }
+
+        let valorVenda = item.valorVendaReal ?? item.valorEstimado ?? 0
+        guard valorVenda > 0 else {
+            erro = "Informe o valor de venda antes de adicionar ao estoque."
+            return false
+        }
+
+        var lancamento = item.paraLancamento(valorVenda: valorVenda)
+        if AuthService.shared.usandoLoginLocal {
+            lancamento.id = UUID().uuidString
+        }
+
+        guard let lancamentoId = LancamentoService.shared.salvarRetornandoID(lancamento) else {
+            erro = LancamentoService.shared.erro ?? "Não foi possível adicionar ao estoque."
+            return false
+        }
+
+        var atualizado = item
+        atualizado.status = .noEstoque
+        atualizado.lancamentoId = lancamentoId
+        guard atualizar(atualizado) else { return false }
+
+        TransacaoLogService.shared.registrar(
+            tipo: .adicionadoEstoque,
+            titulo: "No estoque: \(item.tituloExibicao)",
+            valor: valorVenda,
+            referenciaId: lancamentoId
+        )
+        return true
+    }
+
+    func adicionarFoto(_ data: Data, avaliacaoId: String) async -> FotoAvaliacao? {
+        let comprimida = ImageCompressor.compressJPEG(data) ?? data
+
+        if AuthService.shared.usandoLoginLocal {
+            return salvarFotoLocal(comprimida, avaliacaoId: avaliacaoId)
+        }
+
+        let path = "avaliacoes/\(avaliacaoId)/\(UUID().uuidString).jpg"
+        do {
+            let url = try await ImageStorageService.shared.upload(data: comprimida, path: path)
+            return FotoAvaliacao(url: url.absoluteString, path: path)
+        } catch {
+            self.erro = error.localizedDescription
+            return nil
+        }
+    }
+
+    // MARK: - Nuvem
+
+    @discardableResult
+    private func salvarNuvem(_ item: Avaliacao) -> Bool {
+        salvarNuvemRetornandoID(item) != nil
+    }
+
+    @discardableResult
+    private func salvarNuvemRetornandoID(_ item: Avaliacao) -> String? {
+        guard Auth.auth().currentUser != nil else {
+            erro = "Faça login na aba Nuvem para salvar na nuvem."
+            return nil
+        }
+        do {
+            let ref = try colecao.addDocument(from: item)
+            erro = nil
+            TransacaoLogService.shared.registrar(
+                tipo: .avaliacaoCriada,
+                titulo: "Nova avaliação: \(item.tituloExibicao)",
+                referenciaId: ref.documentID
+            )
+            return ref.documentID
+        } catch {
+            erro = error.localizedDescription
+            return nil
+        }
+    }
+
+    @discardableResult
+    private func atualizarNuvem(_ item: Avaliacao) -> Bool {
+        guard Auth.auth().currentUser != nil, let id = item.id else {
+            erro = "Avaliação sem identificador."
+            return false
+        }
+        do {
+            try colecao.document(id).setData(from: item)
+            erro = nil
+            return true
+        } catch {
+            erro = error.localizedDescription
+            return false
+        }
+    }
+
+    // MARK: - Local
+
+    @discardableResult
+    private func salvarLocal(_ item: Avaliacao) -> Bool {
+        salvarLocalRetornandoID(item) != nil
+    }
+
+    func salvarLocalRetornandoID(_ item: Avaliacao) -> String? {
+        var novo = item
+        if novo.id == nil { novo.id = UUID().uuidString }
+        avaliacoes.insert(novo, at: 0)
+        persistirLocal()
+        erro = nil
+        TransacaoLogService.shared.registrar(
+            tipo: .avaliacaoCriada,
+            titulo: "Nova avaliação: \(novo.tituloExibicao)",
+            referenciaId: novo.id
+        )
+        return novo.id
+    }
+
+    private func atualizarLocal(_ item: Avaliacao) -> Bool {
+        guard let id = item.id,
+              let indice = avaliacoes.firstIndex(where: { $0.id == id }) else {
+            erro = "Avaliação não encontrada."
+            return false
+        }
+        avaliacoes[indice] = item
+        persistirLocal()
+        erro = nil
+        return true
+    }
+
+    private func removerLocal(_ item: Avaliacao) {
+        guard let id = item.id else { return }
+        avaliacoes.removeAll { $0.id == id }
+        persistirLocal()
+    }
+
+    private func persistirLocal() {
+        LocalAvaliacaoStore.shared.salvar(avaliacoes)
+    }
+
+    private func problemasPara(_ item: Avaliacao) -> [ProblemaModelo] {
+        ModeloDefeitosService.buscar(tipo: item.tipoProduto, modelo: item.modelo)
+    }
+
+    private func salvarFotoLocal(_ data: Data, avaliacaoId: String) -> FotoAvaliacao? {
+        let diretorio = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("avaliacoes/\(avaliacaoId)", isDirectory: true)
+
+        do {
+            try FileManager.default.createDirectory(at: diretorio, withIntermediateDirectories: true)
+            let nome = "\(UUID().uuidString).jpg"
+            let arquivo = diretorio.appendingPathComponent(nome)
+            try data.write(to: arquivo)
+            return FotoAvaliacao(url: arquivo.absoluteString, path: arquivo.path)
+        } catch {
+            self.erro = error.localizedDescription
+            return nil
+        }
+    }
+}
