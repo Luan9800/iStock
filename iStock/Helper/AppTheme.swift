@@ -375,13 +375,18 @@ struct EstadoVazioView: View {
 struct BadgeAppView: View {
     let texto: String
     var cor: Color = AppTheme.azulClaro
+    var amplo: Bool = false
 
     var body: some View {
         Text(texto)
-            .font(.caption2.bold())
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(cor.opacity(0.18), in: Capsule())
+            .font(amplo ? .caption.weight(.semibold) : .caption2.weight(.semibold))
+            .lineLimit(1)
+            .padding(.horizontal, amplo ? 14 : 7)
+            .padding(.vertical, amplo ? 7 : 4)
+            .background(
+                cor.opacity(0.18),
+                in: RoundedRectangle(cornerRadius: amplo ? 10 : 6, style: .continuous)
+            )
             .foregroundStyle(cor)
     }
 }

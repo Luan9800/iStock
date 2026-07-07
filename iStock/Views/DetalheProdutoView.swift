@@ -70,6 +70,14 @@ struct DetalheProdutoView: View {
     @ViewBuilder
     private var detalhesVisualizacao: some View {
         VStack(alignment: .leading, spacing: 14) {
+            if let id = produtoAtual.id {
+                GaleriaModeloView(
+                    cadastroId: id,
+                    tipo: produtoAtual.tipoProduto,
+                    criadoPor: auth.nomeOuEmail
+                )
+            }
+
             linhaDetalhe(icone: "tag", titulo: "Nome", valor: produtoAtual.nome)
 
             if let modelo = produtoAtual.modelo, !modelo.isEmpty {
@@ -139,7 +147,12 @@ struct DetalheProdutoView: View {
 
     private var formularioEdicao: some View {
         VStack(alignment: .leading, spacing: 16) {
-            FormularioProdutoView(dados: $dados, criadoPor: auth.nomeOuEmail, mostrarGaleria: false)
+            FormularioProdutoView(
+                dados: $dados,
+                cadastroId: produtoAtual.id ?? UUID().uuidString,
+                criadoPor: auth.nomeOuEmail,
+                mostrarGaleria: false
+            )
 
             HStack(spacing: 12) {
                 BotaoSecundarioView(titulo: "Cancelar") {

@@ -16,6 +16,14 @@ enum PapelUsuario: String, Codable, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    var rotuloExibicao: String {
+        switch self {
+        case .administrador: return "Administrador"
+        case .consultorVendas: return "Consultor"
+        case .cliente: return "Cliente"
+        }
+    }
+
     var icone: String {
         switch self {
         case .administrador: return "person.badge.key.fill"

@@ -52,6 +52,7 @@ final class AuthService: ObservableObject {
             LancamentoService.shared.carregarLocal()
             AvaliacaoService.shared.carregarLocal()
             TransacaoLogService.shared.carregarLocal()
+            ModeloFotoService.shared.carregarLocal()
             sincronizarPerfil()
         }
         configurarListenerSeNecessario()
@@ -259,6 +260,7 @@ final class AuthService: ObservableObject {
             LancamentoService.shared.carregarLocal()
             AvaliacaoService.shared.carregarLocal()
             TransacaoLogService.shared.carregarLocal()
+            ModeloFotoService.shared.carregarLocal()
             sincronizarPerfil()
         } else {
             erro = "E-mail ou senha incorretos."
@@ -279,6 +281,7 @@ final class AuthService: ObservableObject {
             LancamentoService.shared.carregarLocal()
             AvaliacaoService.shared.carregarLocal()
             TransacaoLogService.shared.carregarLocal()
+            ModeloFotoService.shared.carregarLocal()
             sincronizarPerfil()
         case .failure(let erro):
             self.erro = erro.localizedDescription

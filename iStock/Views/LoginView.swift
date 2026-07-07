@@ -190,20 +190,22 @@ struct LoginView: View {
                             .frame(width: 22)
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(papel.rawValue)
+                            Text(papel.rotuloExibicao)
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(desabilitado ? .white.opacity(0.35) : .white)
                             Text(papel.descricaoCadastro)
                                 .font(.caption2)
                                 .foregroundStyle(.white.opacity(desabilitado ? 0.25 : 0.45))
                                 .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
-                        Spacer()
+                        Spacer(minLength: 0)
                         if papelSelecionado == papel {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(papel.cor)
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(12)
                     .background(
                         papelSelecionado == papel
@@ -220,6 +222,7 @@ struct LoginView: View {
                     }
                 }
                 .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .disabled(desabilitado)
             }
 

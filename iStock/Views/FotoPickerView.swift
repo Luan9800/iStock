@@ -13,6 +13,7 @@ import PhotosUI
 #endif
 
 struct GaleriaModeloView: View {
+    let cadastroId: String
     let tipo: TipoProduto
     let criadoPor: String?
 
@@ -26,16 +27,20 @@ struct GaleriaModeloView: View {
     @State private var enviando = false
     @State private var limiteAtingido = false
 
-    private var fotosDoTipo: [ModeloFoto] {
-        service.fotos(para: tipo)
+    private var fotosDoCadastro: [ModeloFoto] {
+        service.fotos(para: cadastroId)
+    }
+
+    private var quantidadeFotos: Int {
+        service.contagem(para: cadastroId)
     }
 
     private var podeAdicionar: Bool {
-        service.podeAdicionar(tipo: tipo)
+        service.podeAdicionar(cadastroId: cadastroId)
     }
 
     private var contagemFotos: String {
-        "\(fotosDoTipo.count)/\(ModeloFotoService.maxFotosPorModelo)"
+        "\(quantidadeFotos)/\(ModeloFotoService.maxFotosPorCadastro)"
     }
 
     private let colunas = [
@@ -45,13 +50,18 @@ struct GaleriaModeloView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("Fotos do \(tipo.rawValue)")
-                    .font(.headline)
-                    .foregroundStyle(.white)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Fotos do cadastro")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                    Text(tipo.rawValue)
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.45))
+                }
                 Spacer()
                 Text(contagemFotos)
-                    .font(.caption)
-                    .foregroundStyle(podeAdicionar ? .white.opacity(0.5) : .orange)
+                    .font(.caption.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(podeAdicionar ? .white.opacity(0.55) : .orange)
                 if enviando {
                     ProgressView()
                         .controlSize(.small)
@@ -59,17 +69,17 @@ struct GaleriaModeloView: View {
             }
 
             if !podeAdicionar {
-                Text("Limite de \(ModeloFotoService.maxFotosPorModelo) fotos atingido para este modelo.")
+                Text("Limite de \(ModeloFotoService.maxFotosPorCadastro) fotos atingido para este cadastro.")
                     .font(.subheadline)
                     .foregroundStyle(.orange)
-            } else if fotosDoTipo.isEmpty && !enviando {
-                Text("Nenhuma foto adicionada para este modelo.")
+            } else if fotosDoCadastro.isEmpty && !enviando {
+                Text("Nenhuma foto adicionada neste cadastro.")
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.45))
             }
 
             LazyVGrid(columns: colunas, spacing: 12) {
-                ForEach(fotosDoTipo) { foto in
+                ForEach(fotosDoCadastro) { foto in
                     FotoModeloThumbnail(foto: foto) {
                         Task { await service.remover(foto) }
                     }
@@ -86,12 +96,12 @@ struct GaleriaModeloView: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
         }
-        .animation(.easeInOut(duration: 0.2), value: tipo)
-        .animation(.easeInOut(duration: 0.2), value: fotosDoTipo.count)
+        .animation(.easeInOut(duration: 0.2), value: cadastroId)
+        .animation(.easeInOut(duration: 0.2), value: quantidadeFotos)
         .alert("Limite atingido", isPresented: $limiteAtingido) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("Este modelo já possui o máximo de \(ModeloFotoService.maxFotosPorModelo) fotos.")
+            Text("Este cadastro já possui o máximo de \(ModeloFotoService.maxFotosPorCadastro) fotos.")
         }
     }
 
@@ -161,7 +171,12 @@ struct GaleriaModeloView: View {
 
         enviando = true
         let comprimida = ImageCompressor.compressJPEG(data) ?? data
-        let sucesso = await service.adicionar(tipo: tipo, imagemData: comprimida, criadoPor: criadoPor)
+        let sucesso = await service.adicionar(
+            cadastroId: cadastroId,
+            tipo: tipo,
+            imagemData: comprimida,
+            criadoPor: criadoPor
+        )
         enviando = false
 
         if !sucesso {

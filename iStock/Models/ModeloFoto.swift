@@ -10,6 +10,7 @@ import FirebaseFirestore
 
 struct ModeloFoto: Identifiable, Codable {
     @DocumentID var id: String?
+    var cadastroId: String?
     var tipoProduto: TipoProduto
     var fotoURL: String
     var fotoPath: String

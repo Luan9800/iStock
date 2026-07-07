@@ -18,6 +18,7 @@ struct NovaAvaliacaoView: View {
     @ObservedObject private var auth = AuthService.shared
 
     @State private var dados = DadosProdutoFormulario()
+    @State private var cadastroId = UUID().uuidString
     @State private var fotosPendentes: [Data] = []
     @State private var salvando = false
 
@@ -44,6 +45,7 @@ struct NovaAvaliacaoView: View {
                         VStack(alignment: .leading, spacing: 20) {
                             FormularioProdutoView(
                                 dados: $dados,
+                                cadastroId: cadastroId,
                                 criadoPor: auth.nomeOuEmail,
                                 mostrarGaleria: false,
                                 modoAvaliacao: true

@@ -12,13 +12,18 @@ struct CadastroProdutoView: View {
     @ObservedObject private var auth = AuthService.shared
 
     @State private var dados = DadosProdutoFormulario()
+    @State private var cadastroId = UUID().uuidString
     @State private var salvo = false
     @State private var salvando = false
 
     var body: some View {
         AppShellView(titulo: "Cadastrar Produto", subtitulo: "Adicione um novo item ao estoque Apple") {
             VStack(alignment: .leading, spacing: 20) {
-                FormularioProdutoView(dados: $dados, criadoPor: auth.nomeOuEmail)
+                FormularioProdutoView(
+                    dados: $dados,
+                    cadastroId: cadastroId,
+                    criadoPor: auth.nomeOuEmail
+                )
 
                 if salvo {
                     Label("Produto salvo!", systemImage: "checkmark.circle.fill")
@@ -48,13 +53,14 @@ struct CadastroProdutoView: View {
 
     private func salvar() {
         salvando = true
-        let item = dados.paraLancamento(criadoPor: auth.nomeOuEmail)
+        let item = dados.paraLancamento(id: cadastroId, criadoPor: auth.nomeOuEmail)
         service.salvar(item)
-        dados = DadosProdutoFormulario()
         salvando = false
 
         if service.erro == nil {
             salvo = true
+            dados = DadosProdutoFormulario()
+            cadastroId = UUID().uuidString
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { salvo = false }
         }
     }

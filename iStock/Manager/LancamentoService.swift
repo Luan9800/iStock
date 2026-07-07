@@ -204,6 +204,13 @@ final class LancamentoService: ObservableObject {
         }
 
         do {
+            if let id = item.id, !id.isEmpty {
+                try colecao.document(id).setData(from: item)
+                erro = nil
+                NotificacaoOfertaService.shared.notificarClientesInteressados(por: item)
+                return id
+            }
+
             let ref = try colecao.addDocument(from: item)
             erro = nil
             NotificacaoOfertaService.shared.notificarClientesInteressados(por: item)

@@ -162,7 +162,7 @@ struct MainView: View {
             }
             ToolbarItem(placement: .automatic) {
                 if let papel = auth.papelAtual {
-                    BadgeAppView(texto: papel.rawValue, cor: papel.cor)
+                    BadgeAppView(texto: papel.rotuloExibicao, cor: papel.cor, amplo: true)
                 }
             }
             ToolbarItem(placement: .automatic) {

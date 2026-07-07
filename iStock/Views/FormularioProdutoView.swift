@@ -65,6 +65,7 @@ struct DadosProdutoFormulario {
 
 struct FormularioProdutoView: View {
     @Binding var dados: DadosProdutoFormulario
+    let cadastroId: String
     let criadoPor: String?
     var mostrarGaleria = true
     var modoAvaliacao = false
@@ -74,7 +75,7 @@ struct FormularioProdutoView: View {
             seletorTipo
 
             if mostrarGaleria, let criadoPor {
-                GaleriaModeloView(tipo: dados.tipoProduto, criadoPor: criadoPor)
+                GaleriaModeloView(cadastroId: cadastroId, tipo: dados.tipoProduto, criadoPor: criadoPor)
             }
 
             CampoAppView(icone: "tag", placeholder: "Nome / descrição", texto: $dados.nome)
