@@ -44,6 +44,7 @@ struct RelatoriosView: View {
             VStack(alignment: .leading, spacing: 20) {
                 if let relatorio = relatorios.relatorioAtual {
                     resumoFinanceiro(relatorio)
+                    avaliacoesValores(relatorio)
                     comprasRecusadas(relatorio)
                     sugestoes(relatorio)
                     estoquePorCategoria(relatorio)
@@ -100,6 +101,53 @@ struct RelatoriosView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func avaliacoesValores(_ relatorio: RelatorioFinanceiro) -> some View {
+        if !relatorio.avaliacoesValores.isEmpty {
+            CartaoVidroView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("Avaliações — estimativa, compra e venda real", systemImage: "chart.line.uptrend.xyaxis")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+
+                    HStack {
+                        resumoValor("Estimativa", Formatters.brl(relatorio.panorama.estimativaAvaliadas), AppTheme.azulClaro)
+                        resumoValor("Compra", Formatters.brl(relatorio.panorama.compraAvaliadas), .green)
+                        resumoValor("Venda real", Formatters.brl(relatorio.panorama.vendaRealAvaliadas), .mint)
+                    }
+
+                    ForEach(relatorio.avaliacoesValores) { item in
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(item.titulo)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white)
+                            HStack {
+                                Text("Est. \(Formatters.brl(item.estimativa))")
+                                Text("· Compra \(Formatters.brl(item.compra))")
+                                Text("· Real \(item.vendaReal.map { Formatters.brl($0) } ?? "Pendente")")
+                            }
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.55))
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+        }
+    }
+
+    private func resumoValor(_ titulo: String, _ valor: String, _ cor: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(valor)
+                .font(.subheadline.bold())
+                .foregroundStyle(cor)
+            Text(titulo)
+                .font(.caption2)
+                .foregroundStyle(.white.opacity(0.45))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder

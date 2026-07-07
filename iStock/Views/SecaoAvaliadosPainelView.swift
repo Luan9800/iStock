@@ -14,6 +14,7 @@ struct SecaoAvaliadosPainelView: View {
     @State private var avaliacaoExcluindo: Avaliacao?
     @State private var avaliacaoSelecionada: Avaliacao?
     @State private var valorReal: Double = 0
+    @State private var mensagemValorReal: String?
 
     private let colunas = [GridItem(.adaptive(minimum: 280), spacing: 14)]
 
@@ -66,7 +67,11 @@ struct SecaoAvaliadosPainelView: View {
     }
 
     private func registrarVendaSheet(_ item: Avaliacao) -> some View {
-        ZStack {
+        let sugerido = item.valorEstimado ?? 0
+        let igualSugerido = sugerido > 0 && abs(valorReal - sugerido) < 0.01
+        let alterado = item.valorVendaReal.map { abs(valorReal - $0) >= 0.01 } ?? (valorReal > 0)
+
+        return ZStack {
             FundoTecnologicoView()
             ScrollView {
                 CartaoVidroView {
@@ -77,11 +82,31 @@ struct SecaoAvaliadosPainelView: View {
                         )
 
                         HStack {
-                            Text("Estimativa")
+                            Text("Venda sugerida")
                                 .foregroundStyle(.white.opacity(0.5))
                             Spacer()
-                            Text(Formatters.brl(item.valorEstimado ?? 0))
+                            Text(Formatters.brl(sugerido))
                                 .foregroundStyle(AppTheme.azulClaro)
+                        }
+
+                        if item.valorCompra > 0 {
+                            HStack {
+                                Text("Compra")
+                                    .foregroundStyle(.white.opacity(0.5))
+                                Spacer()
+                                Text(Formatters.brl(item.valorCompra))
+                                    .foregroundStyle(.green)
+                            }
+                        }
+
+                        if let salvo = item.valorVendaReal {
+                            HStack {
+                                Text("Registrado")
+                                    .foregroundStyle(.white.opacity(0.5))
+                                Spacer()
+                                Text(Formatters.brl(salvo))
+                                    .foregroundStyle(.green)
+                            }
                         }
 
                         Text("Valor real vendido")
@@ -93,14 +118,70 @@ struct SecaoAvaliadosPainelView: View {
                             .foregroundStyle(.green)
                             .padding(12)
                             .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                            .onChange(of: valorReal) { _, _ in mensagemValorReal = nil }
+
+                        if valorReal > 0, alterado, !igualSugerido {
+                            Label("Será registrado: \(Formatters.brl(valorReal))", systemImage: "pencil.line")
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(AppTheme.azulClaro)
+                        }
+
+                        if igualSugerido {
+                            Label("Igual à venda sugerida", systemImage: "equal.circle")
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.55))
+                        }
+
+                        if let mensagemValorReal {
+                            Label(mensagemValorReal, systemImage: "checkmark.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.green)
+                        }
+
+                        if sugerido > 0 {
+                            Button {
+                                valorReal = sugerido
+                                registrarValorReal(item, valor: sugerido, sugerido: true)
+                            } label: {
+                                Text("Confirmar valor sugerido (\(Formatters.brl(sugerido)))")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(AppTheme.gradienteBotao, in: RoundedRectangle(cornerRadius: 12))
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        if item.valorCompra > 0,
+                           abs(item.valorCompra - sugerido) >= 0.01,
+                           !item.possuiVendaReal {
+                            Button {
+                                valorReal = item.valorCompra
+                                registrarValorReal(item, valor: item.valorCompra, sugerido: false)
+                            } label: {
+                                Text("Confirmar no valor da compra (\(Formatters.brl(item.valorCompra)))")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(AppTheme.azulClaro)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 10)
+                                    .background(AppTheme.azulPrimario.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+                            }
+                            .buttonStyle(.plain)
+                        }
 
                         if let erro = service.erro {
                             Text(erro).font(.caption).foregroundStyle(.red)
                         }
 
-                        BotaoPrimarioView(titulo: "Salvar valor real", desabilitado: valorReal <= 0) {
-                            if service.registrarValorVendaReal(item, valor: valorReal) {
-                                avaliacaoEditando = nil
+                        if !igualSugerido {
+                            BotaoPrimarioView(
+                                titulo: item.possuiVendaReal
+                                    ? "Atualizar para \(Formatters.brl(valorReal))"
+                                    : "Registrar \(Formatters.brl(valorReal))",
+                                desabilitado: valorReal <= 0 || !alterado
+                            ) {
+                                registrarValorReal(item, valor: valorReal, sugerido: false)
                             }
                         }
 
@@ -115,6 +196,19 @@ struct SecaoAvaliadosPainelView: View {
             }
         }
         .preferredColorScheme(.dark)
+    }
+
+    private func registrarValorReal(_ item: Avaliacao, valor: Double, sugerido: Bool) {
+        if service.registrarValorVendaReal(item, valor: valor) {
+            valorReal = valor
+            mensagemValorReal = sugerido
+                ? "Valor sugerido confirmado: \(Formatters.brl(valor))"
+                : "Valor real registrado: \(Formatters.brl(valor))"
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                avaliacaoEditando = nil
+                mensagemValorReal = nil
+            }
+        }
     }
 }
 
@@ -152,12 +246,23 @@ struct CartaoAvaliadoPainelView: View {
 
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Estimativa de venda")
+                            Text("Estimativa")
                                 .font(.caption2)
                                 .foregroundStyle(.white.opacity(0.45))
                             Text(Formatters.brl(item.valorEstimado ?? 0))
                                 .font(.subheadline.bold())
                                 .foregroundStyle(AppTheme.azulClaro)
+                        }
+                        Spacer()
+                        if item.valorCompra > 0 {
+                            VStack(alignment: .center, spacing: 4) {
+                                Text("Compra")
+                                    .font(.caption2)
+                                    .foregroundStyle(.white.opacity(0.45))
+                                Text(Formatters.brl(item.valorCompra))
+                                    .font(.subheadline.bold())
+                                    .foregroundStyle(.green)
+                            }
                         }
                         Spacer()
                         VStack(alignment: .trailing, spacing: 4) {

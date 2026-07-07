@@ -86,6 +86,7 @@ struct RelatorioFinanceiro {
     let panorama: PanoramaRelatorio
     let comprasRecusadas: Int
     let recusasNoPeriodo: [RecusaCompraRegistro]
+    let avaliacoesValores: [AvaliacaoValorResumo]
 }
 
 struct RecusaCompraRegistro: Identifiable, Hashable {
@@ -94,6 +95,14 @@ struct RecusaCompraRegistro: Identifiable, Hashable {
     let justificativa: String
     let data: Date
     let valorEstimado: Double?
+}
+
+struct AvaliacaoValorResumo: Identifiable, Hashable {
+    let id: String
+    let titulo: String
+    let estimativa: Double
+    let compra: Double
+    let vendaReal: Double?
 }
 
 struct PanoramaRelatorio {
@@ -108,6 +117,7 @@ struct PanoramaRelatorio {
     let avaliacoesAprovadas: Int
     let avaliacoesNoEstoque: Int
     let estimativaAvaliadas: Double
+    let compraAvaliadas: Double
     let vendaRealAvaliadas: Double
     let margemPotencialEstoque: Double
     let comprasRecusadasTotal: Int

@@ -70,6 +70,18 @@ final class AvaliacaoService: ObservableObject {
         avaliadasComEstimativa.reduce(0) { $0 + $1.valorVendaExibicao }
     }
 
+    var totalCompraAvaliadas: Double {
+        avaliadasComEstimativa.reduce(0) { $0 + $1.valorCompra }
+    }
+
+    var avaliacoesComValores: [Avaliacao] {
+        avaliacoes.filter {
+            $0.valorEstimado != nil
+                && $0.status != .emAvaliacao
+                && $0.status != .compraRecusada
+        }
+    }
+
     func iniciarListener() {
         guard listener == nil else { return }
 
@@ -164,16 +176,30 @@ final class AvaliacaoService: ObservableObject {
         }
 
         var atualizado = item
+        let estimativa = item.valorEstimado
+        let compra = item.valorCompra
         let anterior = item.valorVendaReal ?? item.valorEstimado
         atualizado.valorVendaReal = valor
         atualizado.dataVendaReal = .now
 
         guard atualizar(atualizado) else { return false }
 
+        var detalhes = [
+            estimativa.map { "Estimativa: \(Formatters.brl($0))" },
+            compra > 0 ? "Compra: \(Formatters.brl(compra))" : nil,
+            "Real: \(Formatters.brl(valor))"
+        ].compactMap { $0 }.joined(separator: " · ")
+
+        if valor == compra && compra > 0 {
+            detalhes += " (confirmado no valor da compra)"
+        } else if let estimativa, abs(valor - estimativa) < 0.01 {
+            detalhes += " (confirmado no valor sugerido)"
+        }
+
         TransacaoLogService.shared.registrar(
             tipo: .valorVendaAtualizado,
             titulo: "Venda real: \(item.tituloExibicao)",
-            detalhes: anterior.map { "Estimativa: \(Formatters.brl($0)) → Real: \(Formatters.brl(valor))" },
+            detalhes: detalhes,
             valor: valor,
             valorAnterior: anterior,
             referenciaId: item.id

@@ -257,7 +257,21 @@ enum RelatorioPDFGerador {
         pagina.desenharLinha("Pagamentos pendentes", Formatters.brl(relatorio.pagamentosPendentes))
         pagina.desenharLinha("Pagamentos aprovados", Formatters.brl(relatorio.panorama.pagamentosAprovados))
         pagina.desenharLinha("Estimativa avaliados", Formatters.brl(relatorio.panorama.estimativaAvaliadas))
+        pagina.desenharLinha("Compra avaliados", Formatters.brl(relatorio.panorama.compraAvaliadas))
+        pagina.desenharLinha("Venda real avaliados", Formatters.brl(relatorio.panorama.vendaRealAvaliadas))
         pagina.desenharLinha("Compras recusadas", "\(relatorio.comprasRecusadas) no período")
+
+        if !relatorio.avaliacoesValores.isEmpty {
+            pagina.avancar(8)
+            pagina.desenharSubtitulo("Detalhe por avaliação")
+            for item in relatorio.avaliacoesValores.prefix(20) {
+                let real = item.vendaReal.map { Formatters.brl($0) } ?? "Pendente"
+                pagina.desenharLinha(
+                    item.titulo,
+                    "Est. \(Formatters.brl(item.estimativa)) · Compra \(Formatters.brl(item.compra)) · Real \(real)"
+                )
+            }
+        }
         pagina.finalizarSecao()
 
         // MARK: Seção 5 — Recusas

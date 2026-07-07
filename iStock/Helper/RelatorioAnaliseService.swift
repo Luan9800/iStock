@@ -90,6 +90,25 @@ enum RelatorioAnaliseService {
         let valorEstoque = noEstoque.reduce(0) { $0 + $1.valor }
         let custoEstoque = despesasEstoque
 
+        let avaliacoesComValores = avaliacoes.filter {
+            $0.valorEstimado != nil
+                && $0.status != .emAvaliacao
+                && $0.status != .compraRecusada
+        }
+        let avaliacoesValores: [AvaliacaoValorResumo] = avaliacoesComValores.map { item in
+            AvaliacaoValorResumo(
+                id: item.id ?? UUID().uuidString,
+                titulo: item.tituloExibicao,
+                estimativa: item.valorEstimado ?? 0,
+                compra: item.valorCompra,
+                vendaReal: item.valorVendaReal
+            )
+        }.sorted { $0.titulo < $1.titulo }
+
+        let estimativaAvaliadas = avaliacoesComValores.reduce(0) { $0 + ($1.valorEstimado ?? 0) }
+        let compraAvaliadas = avaliacoesComValores.reduce(0) { $0 + $1.valorCompra }
+        let vendaRealAvaliadas = avaliacoesComValores.reduce(0) { $0 + $1.valorVendaExibicao }
+
         let panorama = PanoramaRelatorio(
             disponiveis: lancamentos.filter { $0.status == .disponivel }.count,
             reservados: lancamentos.filter { $0.status == .reservado }.count,
@@ -101,8 +120,9 @@ enum RelatorioAnaliseService {
             pagamentosPendentesQuantidade: AvaliacaoService.shared.aprovadasSemPagamento.count,
             avaliacoesAprovadas: avaliacoes.filter { $0.status == .aprovado }.count,
             avaliacoesNoEstoque: avaliacoes.filter { $0.status == .noEstoque }.count,
-            estimativaAvaliadas: AvaliacaoService.shared.totalEstimadoAvaliadas,
-            vendaRealAvaliadas: AvaliacaoService.shared.totalVendaRealAvaliadas,
+            estimativaAvaliadas: estimativaAvaliadas,
+            compraAvaliadas: compraAvaliadas,
+            vendaRealAvaliadas: vendaRealAvaliadas,
             margemPotencialEstoque: valorEstoque - custoEstoque,
             comprasRecusadasTotal: avaliacoes.filter { $0.status == .compraRecusada }.count
         )
@@ -127,7 +147,8 @@ enum RelatorioAnaliseService {
             estoquePorCategoria: estoquePorCategoria,
             panorama: panorama,
             comprasRecusadas: recusasNoPeriodo.count,
-            recusasNoPeriodo: recusasNoPeriodo
+            recusasNoPeriodo: recusasNoPeriodo,
+            avaliacoesValores: avaliacoesValores
         )
     }
 

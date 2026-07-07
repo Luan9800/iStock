@@ -15,7 +15,25 @@ struct DetalheAvaliacaoView: View {
 
     @State private var processando = false
     @State private var valorAjustado: Double = 0
+    @State private var valorRealVenda: Double = 0
+    @State private var mensagemValorReal: String?
     @State private var mostrandoRejeicao = false
+
+    private var valorSugerido: Double {
+        if atual.status == .avaliado || atual.status == .aprovado {
+            return valorAjustado
+        }
+        return atual.valorEstimado ?? 0
+    }
+
+    private var valorRealIgualSugerido: Bool {
+        valorSugerido > 0 && abs(valorRealVenda - valorSugerido) < 0.01
+    }
+
+    private var valorRealFoiAlterado: Bool {
+        guard let salvo = atual.valorVendaReal else { return valorRealVenda > 0 }
+        return abs(valorRealVenda - salvo) >= 0.01
+    }
 
     private var atual: Avaliacao {
         service.avaliacoes.first { $0.id == avaliacao.id } ?? avaliacao
@@ -124,9 +142,13 @@ struct DetalheAvaliacaoView: View {
         .preferredColorScheme(.dark)
         .onAppear {
             valorAjustado = atual.valorEstimado ?? 0
+            valorRealVenda = atual.valorVendaReal ?? 0
         }
         .onChange(of: atual.valorEstimado) { _, novo in
             if let novo { valorAjustado = novo }
+        }
+        .onChange(of: atual.valorVendaReal) { _, novo in
+            if let novo { valorRealVenda = novo }
         }
         .sheet(isPresented: $mostrandoRejeicao) {
             RejeitarCompraView(avaliacao: atual) { justificativa in
@@ -184,6 +206,10 @@ struct DetalheAvaliacaoView: View {
                         .foregroundStyle(margem >= 0 ? AppTheme.azulClaro : .red)
                 }
 
+                if atual.status != .emAvaliacao && atual.status != .compraRecusada {
+                    secaoValorRealVenda
+                }
+
                 if let data = atual.dataAvaliacao {
                     Text("Avaliado em \(Formatters.dataCurta.string(from: data))")
                         .font(.caption2)
@@ -207,6 +233,117 @@ struct DetalheAvaliacaoView: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private var secaoValorRealVenda: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Divider().overlay(Color.white.opacity(0.1))
+
+            Text("Valor real de venda")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
+
+            if let salvo = atual.valorVendaReal {
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Registrado")
+                            .font(.caption)
+                            .foregroundStyle(.white.opacity(0.45))
+                        Text(Formatters.brl(salvo))
+                            .font(.title3.bold())
+                            .foregroundStyle(.green)
+                    }
+                    Spacer()
+                    if let data = atual.dataVendaReal {
+                        Text(Formatters.dataCurta.string(from: data))
+                            .font(.caption2)
+                            .foregroundStyle(.white.opacity(0.4))
+                    }
+                }
+                .padding(12)
+                .background(Color.green.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+            }
+
+            TextField("Valor real vendido", value: $valorRealVenda, format: .currency(code: "BRL"))
+                .textFieldStyle(.plain)
+                .font(.title3.bold())
+                .foregroundStyle(.green)
+                .padding(12)
+                .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                .onChange(of: valorRealVenda) { _, _ in
+                    mensagemValorReal = nil
+                }
+
+            if valorRealVenda > 0, valorRealFoiAlterado, !valorRealIgualSugerido {
+                Label("Será registrado: \(Formatters.brl(valorRealVenda))", systemImage: "pencil.line")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(AppTheme.azulClaro)
+            }
+
+            if valorRealIgualSugerido {
+                Label("Igual à venda sugerida (\(Formatters.brl(valorSugerido)))", systemImage: "equal.circle")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.55))
+            }
+
+            if let mensagemValorReal {
+                Label(mensagemValorReal, systemImage: "checkmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(.green)
+            }
+
+            if valorSugerido > 0, !atual.possuiVendaReal || valorRealIgualSugerido {
+                Button {
+                    valorRealVenda = valorSugerido
+                    salvarValorReal(valorSugerido, confirmacaoSugerida: true)
+                } label: {
+                    Text("Confirmar valor sugerido (\(Formatters.brl(valorSugerido)))")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(AppTheme.gradienteBotao, in: RoundedRectangle(cornerRadius: 10))
+                }
+                .buttonStyle(.plain)
+                .disabled(processando)
+            }
+
+            if let compra = atual.valorCompraSugerido,
+               compra > 0,
+               abs(compra - valorSugerido) >= 0.01,
+               !atual.possuiVendaReal {
+                Button {
+                    valorRealVenda = compra
+                    salvarValorReal(compra)
+                } label: {
+                    Text("Confirmar no valor da compra (\(Formatters.brl(compra)))")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.azulClaro)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(AppTheme.azulPrimario.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+                }
+                .buttonStyle(.plain)
+                .disabled(processando)
+            }
+
+            if !valorRealIgualSugerido {
+                BotaoPrimarioView(
+                    titulo: tituloBotaoValorReal,
+                    desabilitado: processando || valorRealVenda <= 0 || !valorRealFoiAlterado
+                ) {
+                    salvarValorReal(valorRealVenda)
+                }
+            }
+        }
+    }
+
+    private var tituloBotaoValorReal: String {
+        if atual.possuiVendaReal {
+            return "Atualizar para \(Formatters.brl(valorRealVenda))"
+        }
+        return "Registrar \(Formatters.brl(valorRealVenda))"
     }
 
     @ViewBuilder
@@ -306,6 +443,29 @@ struct DetalheAvaliacaoView: View {
                 .font(.subheadline)
                 .foregroundStyle(.white)
         }
+    }
+
+    private func salvarValorReal(_ valor: Double, confirmacaoSugerida: Bool = false) {
+        processando = true
+        mensagemValorReal = nil
+        var item = atual
+        if atual.status == .avaliado || atual.status == .aprovado {
+            item.valorEstimado = valorAjustado
+            guard service.atualizar(item) else {
+                processando = false
+                return
+            }
+        }
+        let atualizado = service.avaliacoes.first { $0.id == atual.id } ?? item
+        if service.registrarValorVendaReal(atualizado, valor: valor) {
+            valorRealVenda = valor
+            if confirmacaoSugerida || abs(valor - valorSugerido) < 0.01 {
+                mensagemValorReal = "Valor sugerido confirmado: \(Formatters.brl(valor))"
+            } else {
+                mensagemValorReal = "Valor real registrado: \(Formatters.brl(valor))"
+            }
+        }
+        processando = false
     }
 
     private func aprovarCompra() {
