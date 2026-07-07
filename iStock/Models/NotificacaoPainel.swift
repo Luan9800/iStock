@@ -84,6 +84,16 @@ struct RelatorioFinanceiro {
     let sugestoes: [SugestaoPainel]
     let estoquePorCategoria: [(tipo: TipoProduto, quantidade: Int, valor: Double)]
     let panorama: PanoramaRelatorio
+    let comprasRecusadas: Int
+    let recusasNoPeriodo: [RecusaCompraRegistro]
+}
+
+struct RecusaCompraRegistro: Identifiable, Hashable {
+    let id: String
+    let titulo: String
+    let justificativa: String
+    let data: Date
+    let valorEstimado: Double?
 }
 
 struct PanoramaRelatorio {
@@ -100,6 +110,7 @@ struct PanoramaRelatorio {
     let estimativaAvaliadas: Double
     let vendaRealAvaliadas: Double
     let margemPotencialEstoque: Double
+    let comprasRecusadasTotal: Int
 }
 
 struct RelatorioArquivo: Identifiable, Hashable {

@@ -18,6 +18,7 @@ struct RelatoriosView: View {
     @State private var gerando = false
     @State private var mostrandoCompartilhar = false
     @State private var urlCompartilhar: URL?
+    @State private var arquivoExcluindo: RelatorioArquivo?
 
     private let colunas = [GridItem(.adaptive(minimum: 200), spacing: 14)]
 
@@ -43,6 +44,7 @@ struct RelatoriosView: View {
             VStack(alignment: .leading, spacing: 20) {
                 if let relatorio = relatorios.relatorioAtual {
                     resumoFinanceiro(relatorio)
+                    comprasRecusadas(relatorio)
                     sugestoes(relatorio)
                     estoquePorCategoria(relatorio)
                 }
@@ -59,6 +61,24 @@ struct RelatoriosView: View {
         .onAppear {
             relatorios.atualizarRelatorioAtual()
             relatorios.carregarArquivos()
+        }
+        .alert(
+            "Excluir relatório?",
+            isPresented: Binding(
+                get: { arquivoExcluindo != nil },
+                set: { if !$0 { arquivoExcluindo = nil } }
+            ),
+            presenting: arquivoExcluindo
+        ) { arquivo in
+            Button("Excluir", role: .destructive) {
+                relatorios.excluirRelatorio(arquivo)
+                arquivoExcluindo = nil
+            }
+            Button("Cancelar", role: .cancel) {
+                arquivoExcluindo = nil
+            }
+        } message: { arquivo in
+            Text("O arquivo \(arquivo.url.lastPathComponent) será removido permanentemente.")
         }
     }
 
@@ -77,6 +97,46 @@ struct RelatoriosView: View {
                     metrica("Valor em estoque", Formatters.brl(relatorio.valorEstoque), AppTheme.azulClaro)
                     metrica("Itens em estoque", "\(relatorio.itensEstoque)", AppTheme.azulClaro)
                     metrica("Vendas", "\(relatorio.vendasQuantidade)", .green)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func comprasRecusadas(_ relatorio: RelatorioFinanceiro) -> some View {
+        if !relatorio.recusasNoPeriodo.isEmpty {
+            CartaoVidroView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("Compras não aprovadas", systemImage: "xmark.seal.fill")
+                        .font(.headline)
+                        .foregroundStyle(.red)
+
+                    Text("\(relatorio.comprasRecusadas) no período · \(relatorio.panorama.comprasRecusadasTotal) no total")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.45))
+
+                    ForEach(relatorio.recusasNoPeriodo) { recusa in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(recusa.titulo)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.white)
+                                Spacer()
+                                if let valor = recusa.valorEstimado {
+                                    Text(Formatters.brl(valor))
+                                        .font(.caption.bold())
+                                        .foregroundStyle(AppTheme.azulClaro)
+                                }
+                            }
+                            Text(recusa.justificativa)
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.55))
+                            Text(Formatters.dataCompleta.string(from: recusa.data))
+                                .font(.caption2)
+                                .foregroundStyle(.white.opacity(0.35))
+                        }
+                        .padding(.vertical, 4)
+                    }
                 }
             }
         }
@@ -168,6 +228,15 @@ struct RelatoriosView: View {
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(AppTheme.azulClaro)
                                 .buttonStyle(.plain)
+
+                            Button {
+                                arquivoExcluindo = arquivo
+                            } label: {
+                                Image(systemName: "trash")
+                                    .font(.caption)
+                                    .foregroundStyle(.red.opacity(0.85))
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                 }

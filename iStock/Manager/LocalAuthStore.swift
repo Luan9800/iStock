@@ -13,6 +13,7 @@ enum LocalAuthError: LocalizedError {
     case senhaFraca
     case emailEmUso
     case emailNaoEncontrado
+    case limiteAdministradores
 
     var errorDescription: String? {
         switch self {
@@ -21,6 +22,7 @@ enum LocalAuthError: LocalizedError {
         case .senhaFraca: return "Senha muito fraca (mínimo 6 caracteres)."
         case .emailEmUso: return "Esse e-mail já está cadastrado localmente."
         case .emailNaoEncontrado: return "Nenhuma conta local encontrada com este e-mail."
+        case .limiteAdministradores: return "Limite de 4 administradores atingido. Escolha outro perfil."
         }
     }
 }
@@ -39,7 +41,7 @@ final class LocalAuthStore {
         return carregarContas().first { $0.id == id }
     }
 
-    func registrar(nome: String, email: String, senha: String) -> Result<ContaLocal, LocalAuthError> {
+    func registrar(nome: String, email: String, senha: String, papel: PapelUsuario) -> Result<ContaLocal, LocalAuthError> {
         let emailNormalizado = email.trimmingCharacters(in: .whitespaces).lowercased()
         let nomeLimpo = nome.trimmingCharacters(in: .whitespaces)
 
@@ -52,11 +54,19 @@ final class LocalAuthStore {
             return .failure(.emailEmUso)
         }
 
+        if papel == .administrador {
+            let totalAdmins = contas.filter { $0.papel == .administrador }.count
+            if totalAdmins >= UsuarioService.maxAdministradores {
+                return .failure(.limiteAdministradores)
+            }
+        }
+
         let salt = PasswordHasher.gerarSalt()
         let conta = ContaLocal(
             id: UUID().uuidString,
             nome: nomeLimpo,
             email: emailNormalizado,
+            papel: papel,
             salt: salt,
             senhaHash: PasswordHasher.hash(senha: senha, salt: salt)
         )
@@ -112,11 +122,20 @@ final class LocalAuthStore {
             id: contaAtual.id,
             nome: contaAtual.nome,
             email: contaAtual.email,
+            papel: contaAtual.papel,
             salt: novoSalt,
             senhaHash: PasswordHasher.hash(senha: novaSenha, salt: novoSalt)
         )
         salvarContas(contas)
         return .success(())
+    }
+
+    func contarAdministradoresLocais() -> Int {
+        carregarContas().filter { $0.papel == .administrador }.count
+    }
+
+    func podeRegistrarAdministradorLocal() -> Bool {
+        contarAdministradoresLocais() < UsuarioService.maxAdministradores
     }
 
     private func iniciarSessao(_ conta: ContaLocal) {

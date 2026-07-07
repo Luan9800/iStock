@@ -40,6 +40,7 @@ final class AuthService: ObservableObject {
     @Published var mensagemSucesso: String?
     @Published var carregando = false
     @Published private(set) var usandoLoginLocal = false
+    @Published private(set) var papelAtual: PapelUsuario?
 
     private var handle: AuthStateDidChangeListenerHandle?
 
@@ -47,6 +48,7 @@ final class AuthService: ObservableObject {
         if let conta = LocalAuthStore.shared.contaAtual() {
             usuarioLocal = conta
             usandoLoginLocal = true
+            papelAtual = conta.papel
             LancamentoService.shared.carregarLocal()
             AvaliacaoService.shared.carregarLocal()
             TransacaoLogService.shared.carregarLocal()
@@ -66,14 +68,22 @@ final class AuthService: ObservableObject {
                 self.usuario = user
                 FirebaseSyncCoordinator.shared.atualizarEstadoAuth(usuarioFirebase: user)
                 self.sincronizarPerfil()
+                if user != nil {
+                    Task { await self.carregarPapelUsuario() }
+                } else {
+                    self.papelAtual = nil
+                }
             }
         }
 
         if let user = Auth.auth().currentUser {
             usuario = user
             FirebaseSyncCoordinator.shared.atualizarEstadoAuth(usuarioFirebase: user)
+            Task { await carregarPapelUsuario() }
         }
     }
+
+    var ehAdministrador: Bool { papelAtual == .administrador }
 
     var estaLogado: Bool { usuario != nil || usuarioLocal != nil }
 
@@ -129,13 +139,14 @@ final class AuthService: ObservableObject {
         limparSessaoLocal()
         do {
             try await Auth.auth().signIn(withEmail: email, password: senha)
+            await carregarPapelUsuario()
         } catch {
             erro = traduzErro(error)
         }
         carregando = false
     }
 
-    func cadastrar(nome: String, email: String, senha: String) async {
+    func cadastrar(nome: String, email: String, senha: String, papel: PapelUsuario) async {
         carregando = true
         erro = nil
         limparSessaoLocal()
@@ -144,6 +155,21 @@ final class AuthService: ObservableObject {
             let changeRequest = resultado.user.createProfileChangeRequest()
             changeRequest.displayName = nome
             try await changeRequest.commitChanges()
+
+            let salvo = await UsuarioService.shared.salvarPerfilNuvem(
+                uid: resultado.user.uid,
+                nome: nome,
+                email: email,
+                papel: papel
+            )
+
+            switch salvo {
+            case .success:
+                papelAtual = papel
+            case .failure(let usuarioErro):
+                try? await resultado.user.delete()
+                erro = usuarioErro.localizedDescription
+            }
         } catch {
             erro = traduzErro(error)
         }
@@ -229,6 +255,7 @@ final class AuthService: ObservableObject {
         if let conta = LocalAuthStore.shared.entrar(email: email, senha: senha) {
             usuarioLocal = conta
             usandoLoginLocal = true
+            papelAtual = conta.papel
             LancamentoService.shared.carregarLocal()
             AvaliacaoService.shared.carregarLocal()
             TransacaoLogService.shared.carregarLocal()
@@ -239,15 +266,16 @@ final class AuthService: ObservableObject {
         carregando = false
     }
 
-    func cadastrarLocal(nome: String, email: String, senha: String) {
+    func cadastrarLocal(nome: String, email: String, senha: String, papel: PapelUsuario) {
         carregando = true
         erro = nil
         try? Auth.auth().signOut()
 
-        switch LocalAuthStore.shared.registrar(nome: nome, email: email, senha: senha) {
+        switch LocalAuthStore.shared.registrar(nome: nome, email: email, senha: senha, papel: papel) {
         case .success(let conta):
             usuarioLocal = conta
             usandoLoginLocal = true
+            papelAtual = conta.papel
             LancamentoService.shared.carregarLocal()
             AvaliacaoService.shared.carregarLocal()
             TransacaoLogService.shared.carregarLocal()
@@ -296,9 +324,12 @@ final class AuthService: ObservableObject {
             return
         }
 
+        let uid = user.uid
+
         do {
             try await reautenticar(user: user, senha: senha)
             FirebaseSyncCoordinator.shared.pararSincronizacao()
+            await UsuarioService.shared.removerPerfilNuvem(uid: uid)
             try await user.delete()
         } catch let erroSocial as SocialAuthError {
             if case .cancelado = erroSocial { self.erro = nil } else { erro = erroSocial.localizedDescription }
@@ -355,6 +386,19 @@ final class AuthService: ObservableObject {
         LocalAuthStore.shared.sair()
         usuarioLocal = nil
         usandoLoginLocal = false
+        papelAtual = nil
+    }
+
+    private func carregarPapelUsuario() async {
+        if usandoLoginLocal {
+            papelAtual = usuarioLocal?.papel
+            return
+        }
+        guard let uid = usuario?.uid else {
+            papelAtual = nil
+            return
+        }
+        papelAtual = await UsuarioService.shared.carregarPapelNuvem(uid: uid) ?? .consultorVendas
     }
 
     private func sincronizarPerfil() {

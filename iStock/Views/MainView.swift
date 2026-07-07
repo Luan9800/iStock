@@ -44,6 +44,17 @@ enum SidebarItem: String, Identifiable, CaseIterable, Hashable {
         case .mensagens: return "bubble.left.and.bubble.right"
         }
     }
+
+    static func abas(para papel: PapelUsuario) -> [SidebarItem] {
+        switch papel {
+        case .administrador:
+            return allCases
+        case .consultorVendas:
+            return [.painel, .avaliacoes, .pesquisa, .cadastro, .produtos, .clientes, .mensagens]
+        case .cliente:
+            return [.avaliacoes, .mensagens]
+        }
+    }
 }
 
 struct MainView: View {
@@ -54,6 +65,10 @@ struct MainView: View {
     @ObservedObject private var navegacao = NavegacaoApp.shared
     @State private var selection: SidebarItem = .painel
     @State private var mostrandoExclusao = false
+
+    private var abasPermitidas: [SidebarItem] {
+        SidebarItem.abas(para: auth.papelAtual ?? .consultorVendas)
+    }
 
     private var quantidadeParados: Int {
         lancamentos.lancamentos.filter(\.estaHaMuitoTempoNoEstoque).count
@@ -83,7 +98,7 @@ struct MainView: View {
                         .padding(.top, 12)
 
                         List {
-                            ForEach(SidebarItem.allCases) { item in
+                            ForEach(abasPermitidas) { item in
                                 Button {
                                     selection = item
                                 } label: {
@@ -146,6 +161,11 @@ struct MainView: View {
                 }
             }
             ToolbarItem(placement: .automatic) {
+                if let papel = auth.papelAtual {
+                    BadgeAppView(texto: papel.rawValue, cor: papel.cor)
+                }
+            }
+            ToolbarItem(placement: .automatic) {
                 if auth.estaLogado {
                     Menu {
                         Button("Sair", role: .destructive) { auth.sair() }
@@ -170,6 +190,16 @@ struct MainView: View {
             if let aba {
                 selection = aba
                 navegacao.abaDestino = nil
+            }
+        }
+        .onChange(of: auth.papelAtual) { _, _ in
+            if !abasPermitidas.contains(selection), let primeira = abasPermitidas.first {
+                selection = primeira
+            }
+        }
+        .onAppear {
+            if !abasPermitidas.contains(selection), let primeira = abasPermitidas.first {
+                selection = primeira
             }
         }
     }

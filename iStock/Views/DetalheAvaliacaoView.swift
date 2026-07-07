@@ -15,6 +15,7 @@ struct DetalheAvaliacaoView: View {
 
     @State private var processando = false
     @State private var valorAjustado: Double = 0
+    @State private var mostrandoRejeicao = false
 
     private var atual: Avaliacao {
         service.avaliacoes.first { $0.id == avaliacao.id } ?? avaliacao
@@ -77,6 +78,40 @@ struct DetalheAvaliacaoView: View {
                         }
                     }
 
+                    if atual.status == .compraRecusada {
+                        CartaoVidroView {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Label("Compra não aprovada", systemImage: "xmark.seal.fill")
+                                    .font(.headline)
+                                    .foregroundStyle(.red)
+                                if let data = atual.dataRecusa {
+                                    Text("Em \(Formatters.dataCompleta.string(from: data))")
+                                        .font(.caption)
+                                        .foregroundStyle(.white.opacity(0.45))
+                                }
+                                if let justificativa = atual.justificativaRecusa {
+                                    Text(justificativa)
+                                        .font(.subheadline)
+                                        .foregroundStyle(.white.opacity(0.75))
+                                }
+                            }
+                        }
+                    }
+
+                    if atual.status == .aprovado || atual.retirada != nil {
+                        CartaoVidroView {
+                            SecaoRetiradaProdutoView(avaliacao: atual) { nome, documento, observacoes, foto in
+                                await service.registrarRetirada(
+                                    atual,
+                                    nomeRecebedor: nome,
+                                    documentoRecebedor: documento,
+                                    observacoes: observacoes,
+                                    fotoData: foto
+                                )
+                            }
+                        }
+                    }
+
                     if atual.status != .emAvaliacao {
                         previaValor
                     }
@@ -92,6 +127,15 @@ struct DetalheAvaliacaoView: View {
         }
         .onChange(of: atual.valorEstimado) { _, novo in
             if let novo { valorAjustado = novo }
+        }
+        .sheet(isPresented: $mostrandoRejeicao) {
+            RejeitarCompraView(avaliacao: atual) { justificativa in
+                var item = atual
+                item.valorEstimado = valorAjustado
+                guard service.atualizar(item) else { return false }
+                let atualizado = service.avaliacoes.first { $0.id == item.id } ?? item
+                return service.recusarCompra(atualizado, justificativa: justificativa)
+            }
         }
     }
 
@@ -183,6 +227,27 @@ struct DetalheAvaliacaoView: View {
                 BotaoPrimarioView(titulo: "Aprovar compra", desabilitado: processando || valorAjustado <= 0) {
                     aprovarCompra()
                 }
+
+                Button {
+                    mostrandoRejeicao = true
+                } label: {
+                    Text("Não aprovar compra")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.red)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.red.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .disabled(processando)
+            }
+
+            if atual.status == .compraRecusada {
+                Label("Compra recusada — sem ações pendentes", systemImage: "xmark.seal.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(.red.opacity(0.9))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
             }
 
             if atual.status == .aprovado && !atual.pagamentoAprovado {
@@ -194,8 +259,18 @@ struct DetalheAvaliacaoView: View {
             }
 
             if atual.status == .aprovado && atual.pagamentoAprovado {
-                BotaoPrimarioView(titulo: "Adicionar ao estoque", desabilitado: processando || valorAjustado <= 0) {
+                BotaoPrimarioView(
+                    titulo: "Adicionar ao estoque",
+                    desabilitado: processando || valorAjustado <= 0 || atual.retirada == nil
+                ) {
                     adicionarAoEstoque()
+                }
+
+                if atual.retirada == nil {
+                    Label("Registre a retirada do produto antes de incluir no estoque.", systemImage: "hand.raised")
+                        .font(.caption)
+                        .foregroundStyle(.orange.opacity(0.9))
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
 

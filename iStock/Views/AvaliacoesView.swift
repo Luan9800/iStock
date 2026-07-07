@@ -24,7 +24,7 @@ struct AvaliacoesView: View {
     var body: some View {
         LayoutTelaView(
             titulo: "Avaliações",
-            subtitulo: "\(service.emAvaliacao.count) em análise · \(service.aprovadas.count) aprovadas · \(service.aprovadasSemPagamento.count) pgto pendente",
+            subtitulo: "\(service.emAvaliacao.count) em análise · \(service.aprovadas.count) aprovadas · \(service.comprasRecusadas.count) recusadas",
             trailing: {
                 Button {
                     mostrandoNova = true

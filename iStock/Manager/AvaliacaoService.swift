@@ -30,6 +30,10 @@ final class AvaliacaoService: ObservableObject {
         avaliacoes.filter { $0.status == .avaliado }
     }
 
+    var comprasRecusadas: [Avaliacao] {
+        avaliacoes.filter { $0.status == .compraRecusada }
+    }
+
     var aprovadas: [Avaliacao] {
         avaliacoes.filter { $0.status == .aprovado }
     }
@@ -225,6 +229,32 @@ final class AvaliacaoService: ObservableObject {
     }
 
     @discardableResult
+    func recusarCompra(_ item: Avaliacao, justificativa: String) -> Bool {
+        let texto = justificativa.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard item.status == .avaliado else { return false }
+        guard !texto.isEmpty else {
+            erro = "Informe a justificativa para não aprovar a compra."
+            return false
+        }
+
+        var atualizado = item
+        atualizado.status = .compraRecusada
+        atualizado.justificativaRecusa = texto
+        atualizado.dataRecusa = .now
+        guard atualizar(atualizado) else { return false }
+
+        TransacaoLogService.shared.registrar(
+            tipo: .compraRecusada,
+            titulo: "Compra não aprovada: \(item.tituloExibicao)",
+            detalhes: texto,
+            valor: item.valorCompra,
+            referenciaId: item.id
+        )
+        erro = nil
+        return true
+    }
+
+    @discardableResult
     func aprovarPagamento(_ item: Avaliacao) -> Bool {
         guard item.status == .aprovado, !item.pagamentoAprovado else { return false }
 
@@ -242,11 +272,72 @@ final class AvaliacaoService: ObservableObject {
     }
 
     @discardableResult
+    func registrarRetirada(
+        _ item: Avaliacao,
+        nomeRecebedor: String,
+        documentoRecebedor: String?,
+        observacoes: String?,
+        fotoData: Data?
+    ) async -> Bool {
+        let nome = nomeRecebedor.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard item.status == .aprovado else { return false }
+        guard item.retirada == nil else {
+            erro = "A retirada deste produto já foi registrada."
+            return false
+        }
+        guard !nome.isEmpty else {
+            erro = "Informe quem recebeu o produto."
+            return false
+        }
+
+        var fotoSalva: FotoAvaliacao?
+        if let fotoData, let id = item.id {
+            fotoSalva = await adicionarFotoRetirada(fotoData, avaliacaoId: id)
+        }
+
+        let documento = documentoRecebedor?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let observacoesLimpa = observacoes?.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        var atualizado = item
+        atualizado.retirada = RetiradaProduto(
+            nomeRecebedor: nome,
+            documentoRecebedor: documento?.isEmpty == false ? documento : nil,
+            observacoes: observacoesLimpa?.isEmpty == false ? observacoesLimpa : nil,
+            foto: fotoSalva,
+            data: .now,
+            registradoPor: AuthService.shared.nomeOuEmail
+        )
+        guard atualizar(atualizado) else { return false }
+
+        var detalhes = "Recebido por \(nome)"
+        if let documento = atualizado.retirada?.documentoRecebedor {
+            detalhes += " · Doc. \(documento)"
+        }
+        if fotoSalva != nil {
+            detalhes += " · Com foto"
+        }
+
+        TransacaoLogService.shared.registrar(
+            tipo: .retiradaRegistrada,
+            titulo: "Retirada: \(item.tituloExibicao)",
+            detalhes: detalhes,
+            referenciaId: item.id
+        )
+        erro = nil
+        return true
+    }
+
+    @discardableResult
     func converterParaEstoque(_ item: Avaliacao) -> Bool {
         guard item.status == .aprovado, item.pagamentoAprovado else {
             if item.status == .aprovado && !item.pagamentoAprovado {
                 erro = "Aprove o pagamento antes de adicionar ao estoque."
             }
+            return false
+        }
+
+        guard item.retirada != nil else {
+            erro = "Registre a retirada do produto antes de adicionar ao estoque."
             return false
         }
 
@@ -284,10 +375,27 @@ final class AvaliacaoService: ObservableObject {
         let comprimida = ImageCompressor.compressJPEG(data) ?? data
 
         if AuthService.shared.usandoLoginLocal {
-            return salvarFotoLocal(comprimida, avaliacaoId: avaliacaoId)
+            return salvarFotoLocal(comprimida, avaliacaoId: avaliacaoId, subpasta: nil)
         }
 
         let path = "avaliacoes/\(avaliacaoId)/\(UUID().uuidString).jpg"
+        do {
+            let url = try await ImageStorageService.shared.upload(data: comprimida, path: path)
+            return FotoAvaliacao(url: url.absoluteString, path: path)
+        } catch {
+            self.erro = error.localizedDescription
+            return nil
+        }
+    }
+
+    func adicionarFotoRetirada(_ data: Data, avaliacaoId: String) async -> FotoAvaliacao? {
+        let comprimida = ImageCompressor.compressJPEG(data) ?? data
+
+        if AuthService.shared.usandoLoginLocal {
+            return salvarFotoLocal(comprimida, avaliacaoId: avaliacaoId, subpasta: "retirada")
+        }
+
+        let path = "avaliacoes/\(avaliacaoId)/retirada/\(UUID().uuidString).jpg"
         do {
             let url = try await ImageStorageService.shared.upload(data: comprimida, path: path)
             return FotoAvaliacao(url: url.absoluteString, path: path)
@@ -388,9 +496,12 @@ final class AvaliacaoService: ObservableObject {
         ModeloDefeitosService.buscar(tipo: item.tipoProduto, modelo: item.modelo)
     }
 
-    private func salvarFotoLocal(_ data: Data, avaliacaoId: String) -> FotoAvaliacao? {
-        let diretorio = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+    private func salvarFotoLocal(_ data: Data, avaliacaoId: String, subpasta: String?) -> FotoAvaliacao? {
+        var diretorio = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("avaliacoes/\(avaliacaoId)", isDirectory: true)
+        if let subpasta {
+            diretorio = diretorio.appendingPathComponent(subpasta, isDirectory: true)
+        }
 
         do {
             try FileManager.default.createDirectory(at: diretorio, withIntermediateDirectories: true)

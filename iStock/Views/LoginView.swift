@@ -25,6 +25,8 @@ struct LoginView: View {
     @State private var confirmarSenha = ""
     @State private var erroSenha = ""
     @State private var mostrandoRedefinirSenha = false
+    @State private var papelSelecionado: PapelUsuario = .consultorVendas
+    @State private var adminDisponivel = true
 
     var body: some View {
         ZStack {
@@ -42,9 +44,15 @@ struct LoginView: View {
             }
         }
         .preferredColorScheme(.dark)
-        .onChange(of: modoAuth) { _, _ in limparErros() }
+        .onChange(of: modoAuth) { _, _ in
+            limparErros()
+            if modoCadastro { Task { await atualizarDisponibilidadeAdmin() } }
+        }
         .onChange(of: senha) { _, _ in erroSenha = "" }
         .onChange(of: confirmarSenha) { _, _ in erroSenha = "" }
+        .onChange(of: modoCadastro) { _, cadastro in
+            if cadastro { Task { await atualizarDisponibilidadeAdmin() } }
+        }
         .sheet(isPresented: $mostrandoRedefinirSenha) {
             RedefinirSenhaView(modoAuth: modoAuth)
         }
@@ -128,6 +136,8 @@ struct LoginView: View {
                             texto: $confirmarSenha,
                             ehSenha: true
                         )
+
+                        seletorPapel
                     }
                 }
 
@@ -161,6 +171,66 @@ struct LoginView: View {
         }
     }
 
+    private var seletorPapel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Perfil de acesso")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.55))
+
+            ForEach(PapelUsuario.allCases) { papel in
+                let desabilitado = papel == .administrador && !adminDisponivel
+                Button {
+                    guard !desabilitado else { return }
+                    papelSelecionado = papel
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: papel.icone)
+                            .font(.body)
+                            .foregroundStyle(papelSelecionado == papel ? papel.cor : .white.opacity(0.45))
+                            .frame(width: 22)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(papel.rawValue)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(desabilitado ? .white.opacity(0.35) : .white)
+                            Text(papel.descricaoCadastro)
+                                .font(.caption2)
+                                .foregroundStyle(.white.opacity(desabilitado ? 0.25 : 0.45))
+                                .multilineTextAlignment(.leading)
+                        }
+                        Spacer()
+                        if papelSelecionado == papel {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(papel.cor)
+                        }
+                    }
+                    .padding(12)
+                    .background(
+                        papelSelecionado == papel
+                            ? papel.cor.opacity(0.12)
+                            : Color.white.opacity(0.05),
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(
+                                papelSelecionado == papel ? papel.cor.opacity(0.45) : Color.clear,
+                                lineWidth: 1
+                            )
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(desabilitado)
+            }
+
+            if !adminDisponivel {
+                Text("Limite de 4 administradores atingido.")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+            }
+        }
+    }
+
     @ViewBuilder
     private var mensagensErro: some View {
         if !erroSenha.isEmpty {
@@ -190,6 +260,7 @@ struct LoginView: View {
     private var camposInvalidos: Bool {
         if modoCadastro && nome.trimmingCharacters(in: .whitespaces).isEmpty { return true }
         if modoCadastro && confirmarSenha.isEmpty { return true }
+        if modoCadastro && papelSelecionado == .administrador && !adminDisponivel { return true }
         return email.isEmpty || senha.isEmpty
     }
 
@@ -208,18 +279,29 @@ struct LoginView: View {
 
         if modoAuth == .local {
             if modoCadastro {
-                auth.cadastrarLocal(nome: nome, email: email, senha: senha)
+                auth.cadastrarLocal(nome: nome, email: email, senha: senha, papel: papelSelecionado)
             } else {
                 auth.entrarLocal(email: email, senha: senha)
             }
         } else {
             Task {
                 if modoCadastro {
-                    await auth.cadastrar(nome: nome, email: email, senha: senha)
+                    await auth.cadastrar(nome: nome, email: email, senha: senha, papel: papelSelecionado)
                 } else {
                     await auth.entrar(email: email, senha: senha)
                 }
             }
+        }
+    }
+
+    private func atualizarDisponibilidadeAdmin() async {
+        if modoAuth == .local {
+            adminDisponivel = LocalAuthStore.shared.podeRegistrarAdministradorLocal()
+        } else {
+            adminDisponivel = await UsuarioService.shared.podeRegistrarAdministradorNuvem()
+        }
+        if !adminDisponivel && papelSelecionado == .administrador {
+            papelSelecionado = .consultorVendas
         }
     }
 }

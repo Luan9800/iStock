@@ -13,6 +13,8 @@ enum TipoTransacao: String, Codable, CaseIterable, Identifiable {
     case avaliacaoCriada = "Avaliação criada"
     case avaliacaoConcluida = "Avaliação concluída"
     case compraAprovada = "Compra aprovada"
+    case compraRecusada = "Compra não aprovada"
+    case retiradaRegistrada = "Retirada registrada"
     case pagamentoAprovado = "Pagamento aprovado"
     case valorVendaAtualizado = "Valor de venda atualizado"
     case adicionadoEstoque = "Adicionado ao estoque"
@@ -26,6 +28,8 @@ enum TipoTransacao: String, Codable, CaseIterable, Identifiable {
         case .avaliacaoCriada: return "plus.circle"
         case .avaliacaoConcluida: return "chart.line.uptrend.xyaxis"
         case .compraAprovada: return "checkmark.seal"
+        case .compraRecusada: return "xmark.seal"
+        case .retiradaRegistrada: return "hand.raised.fill"
         case .pagamentoAprovado: return "banknote"
         case .valorVendaAtualizado: return "pencil.circle"
         case .adicionadoEstoque: return "shippingbox"
@@ -36,8 +40,8 @@ enum TipoTransacao: String, Codable, CaseIterable, Identifiable {
 
     var cor: Color {
         switch self {
-        case .avaliacaoExcluida: return .red
-        case .pagamentoAprovado, .vendaProduto, .adicionadoEstoque: return .green
+        case .avaliacaoExcluida, .compraRecusada: return .red
+        case .pagamentoAprovado, .vendaProduto, .adicionadoEstoque, .retiradaRegistrada: return .green
         case .valorVendaAtualizado: return .orange
         default: return AppTheme.azulClaro
         }

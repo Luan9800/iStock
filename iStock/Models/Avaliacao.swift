@@ -13,6 +13,7 @@ enum StatusAvaliacao: String, Codable, CaseIterable, Identifiable {
     case emAvaliacao = "Em avaliação"
     case avaliado = "Avaliado"
     case aprovado = "Aprovado"
+    case compraRecusada = "Compra recusada"
     case noEstoque = "No estoque"
 
     var id: String { rawValue }
@@ -22,6 +23,7 @@ enum StatusAvaliacao: String, Codable, CaseIterable, Identifiable {
         case .emAvaliacao: return .orange
         case .avaliado: return AppTheme.azulClaro
         case .aprovado: return .green
+        case .compraRecusada: return .red
         case .noEstoque: return .mint
         }
     }
@@ -31,6 +33,7 @@ enum StatusAvaliacao: String, Codable, CaseIterable, Identifiable {
         case .emAvaliacao: return "clock.badge.checkmark"
         case .avaliado: return "chart.line.uptrend.xyaxis"
         case .aprovado: return "checkmark.seal.fill"
+        case .compraRecusada: return "xmark.seal.fill"
         case .noEstoque: return "shippingbox.fill"
         }
     }
@@ -46,6 +49,15 @@ struct FotoAvaliacao: Codable, Identifiable, Hashable {
         self.url = url
         self.path = path
     }
+}
+
+struct RetiradaProduto: Codable, Hashable {
+    var nomeRecebedor: String
+    var documentoRecebedor: String?
+    var observacoes: String?
+    var foto: FotoAvaliacao?
+    var data: Date = .now
+    var registradoPor: String?
 }
 
 struct Avaliacao: Identifiable, Codable {
@@ -71,6 +83,9 @@ struct Avaliacao: Identifiable, Codable {
     var dataVendaReal: Date?
     var dataAprovacao: Date?
     var dataPagamento: Date?
+    var dataRecusa: Date?
+    var justificativaRecusa: String?
+    var retirada: RetiradaProduto?
     var criadoPor: String?
     var lancamentoId: String?
     var problemasModelo: [ProblemaModelo]?
@@ -99,6 +114,10 @@ struct Avaliacao: Identifiable, Codable {
     var situacaoPagamento: String? {
         guard status == .aprovado else { return nil }
         return pagamentoAprovado ? "Pagamento aprovado" : "Pagamento pendente"
+    }
+
+    var retiradaPendente: Bool {
+        status == .aprovado && retirada == nil
     }
 
     func paraLancamento(valorVenda: Double? = nil, custo: Double? = nil) -> Lancamento {

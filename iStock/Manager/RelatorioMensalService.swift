@@ -121,6 +121,19 @@ final class RelatorioMensalService: ObservableObject {
             .sorted { $0.dataGeracao > $1.dataGeracao }
     }
 
+    @discardableResult
+    func excluirRelatorio(_ arquivo: RelatorioArquivo) -> Bool {
+        do {
+            try FileManager.default.removeItem(at: arquivo.url)
+            arquivos.removeAll { $0.id == arquivo.id }
+            erro = nil
+            return true
+        } catch {
+            self.erro = "Não foi possível excluir o relatório: \(error.localizedDescription)"
+            return false
+        }
+    }
+
     private func diretorioRelatorios() -> URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("relatorios", isDirectory: true)

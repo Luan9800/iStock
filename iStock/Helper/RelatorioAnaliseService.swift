@@ -59,6 +59,21 @@ enum RelatorioAnaliseService {
             return (tipo, itens.count, itens.reduce(0) { $0 + $1.valor })
         }
 
+        let recusasNoPeriodo: [RecusaCompraRegistro] = avaliacoes.compactMap { item in
+            guard item.status == .compraRecusada,
+                  let data = item.dataRecusa,
+                  data >= periodoInicio,
+                  data <= periodoFim,
+                  let justificativa = item.justificativaRecusa else { return nil }
+            return RecusaCompraRegistro(
+                id: item.id ?? UUID().uuidString,
+                titulo: item.tituloExibicao,
+                justificativa: justificativa,
+                data: data,
+                valorEstimado: item.valorEstimado
+            )
+        }.sorted { $0.data > $1.data }
+
         let sugestoes = montarSugestoes(
             receita: receita,
             despesas: despesasTotal,
@@ -67,6 +82,7 @@ enum RelatorioAnaliseService {
             emAvaliacao: avaliacoes.filter { $0.status == .emAvaliacao }.count,
             avaliadas: avaliacoes.filter { $0.status == .avaliado }.count,
             pagamentosPendentes: avaliacoes.filter { $0.status == .aprovado && !$0.pagamentoAprovado }.count,
+            comprasRecusadasPeriodo: recusasNoPeriodo.count,
             margemMedia: margemMedia,
             estoqueVazio: noEstoque.isEmpty
         )
@@ -87,7 +103,8 @@ enum RelatorioAnaliseService {
             avaliacoesNoEstoque: avaliacoes.filter { $0.status == .noEstoque }.count,
             estimativaAvaliadas: AvaliacaoService.shared.totalEstimadoAvaliadas,
             vendaRealAvaliadas: AvaliacaoService.shared.totalVendaRealAvaliadas,
-            margemPotencialEstoque: valorEstoque - custoEstoque
+            margemPotencialEstoque: valorEstoque - custoEstoque,
+            comprasRecusadasTotal: avaliacoes.filter { $0.status == .compraRecusada }.count
         )
 
         return RelatorioFinanceiro(
@@ -108,7 +125,9 @@ enum RelatorioAnaliseService {
             margemMediaPercentual: margemMedia,
             sugestoes: sugestoes,
             estoquePorCategoria: estoquePorCategoria,
-            panorama: panorama
+            panorama: panorama,
+            comprasRecusadas: recusasNoPeriodo.count,
+            recusasNoPeriodo: recusasNoPeriodo
         )
     }
 
@@ -120,6 +139,7 @@ enum RelatorioAnaliseService {
         emAvaliacao: Int,
         avaliadas: Int,
         pagamentosPendentes: Int,
+        comprasRecusadasPeriodo: Int,
         margemMedia: Double?,
         estoqueVazio: Bool
     ) -> [SugestaoPainel] {
@@ -157,6 +177,15 @@ enum RelatorioAnaliseService {
                 id: "avaliacoes-concluidas",
                 titulo: "\(avaliadas) avaliado(s) sem aprovação",
                 mensagem: "Aprove a compra ou registre o valor real de venda nas avaliações concluídas.",
+                prioridade: .media
+            ))
+        }
+
+        if comprasRecusadasPeriodo > 0 {
+            lista.append(SugestaoPainel(
+                id: "compras-recusadas",
+                titulo: "\(comprasRecusadasPeriodo) compra(s) não aprovada(s)",
+                mensagem: "Revise as justificativas registradas e ajuste critérios de precificação se necessário.",
                 prioridade: .media
             ))
         }
