@@ -26,7 +26,6 @@ struct AssistenteIAView: View {
                                     title: "Assistente de Negociação",
                                     subtitle: "Ajuda em descontos, trocas, contrapropostas e estratégias para fechar vendas.",
                                     color: Color(red: 0.18, green: 0.72, blue: 0.45)
-                                    
                                 )
                             }
                             .buttonStyle(.plain)
