@@ -18,6 +18,7 @@ struct DetalheAvaliacaoView: View {
     @State private var valorRealVenda: Double = 0
     @State private var mensagemValorReal: String?
     @State private var mostrandoRejeicao = false
+    @State private var mostrandoExclusao = false
 
     private var valorSugerido: Double {
         if atual.status == .avaliado || atual.status == .aprovado {
@@ -157,6 +158,16 @@ struct DetalheAvaliacaoView: View {
                 guard service.atualizar(item) else { return false }
                 let atualizado = service.avaliacoes.first { $0.id == item.id } ?? item
                 return service.recusarCompra(atualizado, justificativa: justificativa)
+            }
+        }
+        .sheet(isPresented: $mostrandoExclusao) {
+            ConfirmarSenhaAdminView(
+                titulo: "Excluir avaliação",
+                mensagem: "Confirme para excluir \(atual.tituloExibicao). Esta ação não pode ser desfeita."
+            ) { senha, confirmacao in
+                let ok = service.removerComAutorizacaoAdmin(atual, senha: senha, confirmacaoSenha: confirmacao)
+                if ok { dismiss() }
+                return ok
             }
         }
     }
@@ -424,6 +435,19 @@ struct DetalheAvaliacaoView: View {
                     .font(.caption)
                     .foregroundStyle(.red.opacity(0.9))
             }
+
+            Button {
+                mostrandoExclusao = true
+            } label: {
+                Label("Excluir avaliação", systemImage: "trash")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.red)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.red.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .disabled(processando)
 
             Button("Fechar") { dismiss() }
                 .font(.subheadline.weight(.medium))
