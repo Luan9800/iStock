@@ -80,11 +80,7 @@ final class PerfilService: ObservableObject {
             UserDefaults.standard.set(arquivo.absoluteString, forKey: chaveFoto(uid))
             return true
         } catch {
-<<<<<<< HEAD
-            self.erro = error.localizedDescription
-=======
             self.erro = FirebaseErrorHelper.mensagem(error)
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
             return false
         }
     }
@@ -110,11 +106,7 @@ final class PerfilService: ObservableObject {
             }
             return true
         } catch {
-<<<<<<< HEAD
-            self.erro = error.localizedDescription
-=======
             self.erro = FirebaseErrorHelper.mensagem(error)
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
             return false
         }
     }

@@ -17,11 +17,7 @@ final class AvaliacaoService: ObservableObject {
     @Published var avaliacoes: [Avaliacao] = []
     @Published var erro: String?
 
-<<<<<<< HEAD
-    private let colecao = Firestore.firestore().collection("avaliacoes")
-=======
     private let colecao = FirestoreProvider.db.collection("avaliacoes")
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
     private var listener: ListenerRegistration?
 
     private init() {}
@@ -94,14 +90,6 @@ final class AvaliacaoService: ObservableObject {
                 Task { @MainActor in
                     guard let self else { return }
                     if let erro {
-<<<<<<< HEAD
-                        self.erro = erro.localizedDescription
-                        return
-                    }
-                    self.erro = nil
-                    self.avaliacoes = resultado?.documents.compactMap {
-                        try? $0.data(as: Avaliacao.self)
-=======
                         self.erro = FirebaseErrorHelper.mensagem(erro)
                         FirebaseSyncCoordinator.shared.registrarErroPermissao(erro)
                         return
@@ -114,7 +102,6 @@ final class AvaliacaoService: ObservableObject {
                             print("⚠️ Falha ao decodificar avaliação \(doc.documentID): \(error.localizedDescription)")
                             return nil
                         }
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
                     } ?? []
                     PainelNotificacaoService.shared.verificarAvaliacoes(self.avaliacoes)
                     RelatorioMensalService.shared.atualizarRelatorioAtual()
@@ -168,11 +155,7 @@ final class AvaliacaoService: ObservableObject {
         let resultado = AdminService.shared.autorizar(senha, confirmacao: confirmacaoSenha)
         switch resultado {
         case .failure(let erro):
-<<<<<<< HEAD
-            self.erro = erro.localizedDescription
-=======
             self.erro = FirebaseErrorHelper.mensagem(erro)
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
             return false
         case .success:
             break
@@ -432,11 +415,7 @@ final class AvaliacaoService: ObservableObject {
             let url = try await ImageStorageService.shared.upload(data: comprimida, path: path)
             return FotoAvaliacao(url: url.absoluteString, path: path)
         } catch {
-<<<<<<< HEAD
-            self.erro = error.localizedDescription
-=======
             self.erro = FirebaseErrorHelper.mensagem(error)
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
             return nil
         }
     }
@@ -453,11 +432,7 @@ final class AvaliacaoService: ObservableObject {
             let url = try await ImageStorageService.shared.upload(data: comprimida, path: path)
             return FotoAvaliacao(url: url.absoluteString, path: path)
         } catch {
-<<<<<<< HEAD
-            self.erro = error.localizedDescription
-=======
             self.erro = FirebaseErrorHelper.mensagem(error)
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
             return nil
         }
     }
@@ -485,11 +460,7 @@ final class AvaliacaoService: ObservableObject {
             )
             return ref.documentID
         } catch {
-<<<<<<< HEAD
-            erro = error.localizedDescription
-=======
             erro = FirebaseErrorHelper.mensagem(error)
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
             return nil
         }
     }
@@ -505,11 +476,7 @@ final class AvaliacaoService: ObservableObject {
             erro = nil
             return true
         } catch {
-<<<<<<< HEAD
-            erro = error.localizedDescription
-=======
             erro = FirebaseErrorHelper.mensagem(error)
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
             return false
         }
     }
@@ -575,11 +542,7 @@ final class AvaliacaoService: ObservableObject {
             try data.write(to: arquivo)
             return FotoAvaliacao(url: arquivo.absoluteString, path: arquivo.path)
         } catch {
-<<<<<<< HEAD
-            self.erro = error.localizedDescription
-=======
             self.erro = FirebaseErrorHelper.mensagem(error)
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
             return nil
         }
     }

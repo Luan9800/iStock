@@ -27,30 +27,12 @@ final class FirebaseSyncCoordinator: ObservableObject {
     }
 
     func iniciarSincronizacao() {
-<<<<<<< HEAD
-        guard Auth.auth().currentUser != nil else {
-=======
         guard let usuario = Auth.auth().currentUser else {
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
             erro = "Autenticação na nuvem necessária para sincronizar."
             sincronizado = false
             return
         }
 
-<<<<<<< HEAD
-        erro = nil
-        LancamentoService.shared.iniciarListener()
-        ClienteService.shared.iniciarListener()
-        ModeloFotoService.shared.iniciarListener()
-        AvaliacaoService.shared.iniciarListener()
-        TransacaoLogService.shared.iniciarListener()
-
-        if let uid = Auth.auth().currentUser?.uid {
-            ChatService.shared.iniciarConversasListener(uid: uid)
-        }
-
-        sincronizado = true
-=======
         Task {
             do {
                 _ = try await usuario.getIDToken(forcingRefresh: true)
@@ -77,7 +59,6 @@ final class FirebaseSyncCoordinator: ObservableObject {
         guard FirebaseErrorHelper.ehPermissaoNegada(error) else { return }
         erro = FirebaseErrorHelper.mensagem(error)
         sincronizado = false
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
     }
 
     func pararSincronizacao() {

@@ -5,10 +5,7 @@
 //  Created by Berg Limma on 07/07/26.
 //
 
-<<<<<<< HEAD
-=======
 import FirebaseAuth
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
 import FirebaseFirestore
 import Foundation
 
@@ -16,10 +13,7 @@ enum UsuarioError: LocalizedError {
     case limiteAdministradores
     case usuarioNaoEncontrado
     case naoAutenticado
-<<<<<<< HEAD
-=======
     case permissaoNegada(String)
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
 
     var errorDescription: String? {
         switch self {
@@ -29,11 +23,8 @@ enum UsuarioError: LocalizedError {
             return "Perfil do usuário não encontrado."
         case .naoAutenticado:
             return "Faça login na nuvem para continuar."
-<<<<<<< HEAD
-=======
         case .permissaoNegada(let mensagem):
             return mensagem
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
         }
     }
 }
@@ -43,30 +34,21 @@ final class UsuarioService {
     static let shared = UsuarioService()
     static let maxAdministradores = 4
 
-<<<<<<< HEAD
-    private let colecao = Firestore.firestore().collection("usuarios")
-=======
     private let colecao = FirestoreProvider.db.collection("usuarios")
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
 
     private init() {}
 
     func contarAdministradoresNuvem() async -> Int {
-<<<<<<< HEAD
-=======
         if Auth.auth().currentUser == nil {
             return await contarAdministradoresPublico()
         }
 
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
         do {
             let resultado = try await colecao
                 .whereField("papel", isEqualTo: PapelUsuario.administrador.rawValue)
                 .getDocuments()
             return resultado.documents.count
         } catch {
-<<<<<<< HEAD
-=======
             return await contarAdministradoresPublico()
         }
     }
@@ -79,7 +61,6 @@ final class UsuarioService {
                 .getDocument()
             return documento.data()?["administradores"] as? Int ?? 0
         } catch {
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
             return 0
         }
     }
@@ -110,17 +91,12 @@ final class UsuarioService {
 
         do {
             try colecao.document(uid).setData(from: perfil)
-<<<<<<< HEAD
-            return .success(())
-        } catch {
-=======
             await atualizarContadorAdministradores()
             return .success(())
         } catch {
             if FirebaseErrorHelper.ehPermissaoNegada(error) {
                 return .failure(.permissaoNegada(FirebaseErrorHelper.mensagem(error)))
             }
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
             return .failure(.naoAutenticado)
         }
     }
@@ -137,8 +113,6 @@ final class UsuarioService {
 
     func removerPerfilNuvem(uid: String) async {
         try? await colecao.document(uid).delete()
-<<<<<<< HEAD
-=======
         await atualizarContadorAdministradores()
     }
 
@@ -148,6 +122,5 @@ final class UsuarioService {
             .collection("config")
             .document("limites")
             .setData(["administradores": total], merge: true)
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
     }
 }

@@ -18,11 +18,7 @@ final class TransacaoLogService: ObservableObject {
     @Published var transacoes: [LogTransacao] = []
     @Published var erro: String?
 
-<<<<<<< HEAD
-    private let colecao = Firestore.firestore().collection("transacoes")
-=======
     private let colecao = FirestoreProvider.db.collection("transacoes")
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
     private var listener: ListenerRegistration?
 
     private init() {}
@@ -35,12 +31,8 @@ final class TransacaoLogService: ObservableObject {
                 Task { @MainActor in
                     guard let self else { return }
                     if let erro {
-<<<<<<< HEAD
-                        self.erro = erro.localizedDescription
-=======
                         self.erro = FirebaseErrorHelper.mensagem(erro)
                         FirebaseSyncCoordinator.shared.registrarErroPermissao(erro)
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
                         return
                     }
                     self.erro = nil
@@ -92,11 +84,7 @@ final class TransacaoLogService: ObservableObject {
         do {
             try colecao.addDocument(from: item)
         } catch {
-<<<<<<< HEAD
-            self.erro = error.localizedDescription
-=======
             self.erro = FirebaseErrorHelper.mensagem(error)
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
         }
     }
 
@@ -134,11 +122,7 @@ final class TransacaoLogService: ObservableObject {
             erro = nil
             return url
         } catch {
-<<<<<<< HEAD
-            self.erro = error.localizedDescription
-=======
             self.erro = FirebaseErrorHelper.mensagem(error)
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
             return nil
         }
     }

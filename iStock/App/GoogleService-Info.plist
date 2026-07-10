@@ -3,15 +3,6 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-<<<<<<< HEAD
-	<string>215230643256-ra9vkgk5c17c217eh2b7fn5iueemstm8.apps.googleusercontent.com</string>
-	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.215230643256-ra9vkgk5c17c217eh2b7fn5iueemstm8</string>
-	<key>API_KEY</key>
-	<string>AIzaSyA9etWOotF6JewOr1El7Or11shZAaQFZSU</string>
-	<key>GCM_SENDER_ID</key>
-	<string>215230643256</string>
-=======
 	<string>60021957882-pak4e17mbql7gb2cb3fb8eth91cbhuks.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
 	<string>com.googleusercontent.apps.60021957882-pak4e17mbql7gb2cb3fb8eth91cbhuks</string>
@@ -19,21 +10,14 @@
 	<string>AIzaSyCJ6A58g0AuRuV8wCKlB_It6MoyXyg4ebg</string>
 	<key>GCM_SENDER_ID</key>
 	<string>60021957882</string>
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
 	<string>iStock.iStock</string>
 	<key>PROJECT_ID</key>
-<<<<<<< HEAD
-	<string>istock-21727</string>
-	<key>STORAGE_BUCKET</key>
-	<string>istock-21727.firebasestorage.app</string>
-=======
 	<string>istock-4771d</string>
 	<key>STORAGE_BUCKET</key>
 	<string>istock-4771d.firebasestorage.app</string>
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
 	<key>IS_ADS_ENABLED</key>
 	<false></false>
 	<key>IS_ANALYTICS_ENABLED</key>
@@ -45,10 +29,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-<<<<<<< HEAD
-	<string>1:215230643256:ios:089d733d1f638d4bf07acd</string>
-=======
 	<string>1:60021957882:ios:f30a4e319ee2e4d0b71543</string>
->>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
 </dict>
 </plist>
