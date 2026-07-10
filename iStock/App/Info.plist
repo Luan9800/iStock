@@ -9,7 +9,11 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
+<<<<<<< HEAD
 				<string>com.googleusercontent.apps.215230643256-ra9vkgk5c17c217eh2b7fn5iueemstm8</string>
+=======
+				<string>com.googleusercontent.apps.60021957882-pak4e17mbql7gb2cb3fb8eth91cbhuks</string>
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
 			</array>
 		</dict>
 	</array>

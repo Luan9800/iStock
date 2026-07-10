@@ -6,9 +6,15 @@
 //
 
 import Combine
+<<<<<<< HEAD
 import Foundation
 import FirebaseAuth
 import FirebaseCore
+=======
+import FirebaseAuth
+import FirebaseCore
+import Foundation
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
 
 enum MetodoLogin {
     case local
@@ -156,6 +162,10 @@ final class AuthService: ObservableObject {
             let changeRequest = resultado.user.createProfileChangeRequest()
             changeRequest.displayName = nome
             try await changeRequest.commitChanges()
+<<<<<<< HEAD
+=======
+            _ = try await resultado.user.getIDToken(forcingRefresh: true)
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
 
             let salvo = await UsuarioService.shared.salvarPerfilNuvem(
                 uid: resultado.user.uid,

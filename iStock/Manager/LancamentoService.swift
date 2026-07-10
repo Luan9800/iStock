@@ -18,7 +18,11 @@ final class LancamentoService: ObservableObject {
     @Published var lancamentos: [Lancamento] = []
     @Published var erro: String?
 
+<<<<<<< HEAD
     private let colecao = Firestore.firestore().collection("lancamentos")
+=======
+    private let colecao = FirestoreProvider.db.collection("lancamentos")
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
     private var listener: ListenerRegistration?
     private var modoLocal = false
 
@@ -35,7 +39,12 @@ final class LancamentoService: ObservableObject {
                 Task { @MainActor in
                     guard let self else { return }
                     if let erro {
+<<<<<<< HEAD
                         self.erro = erro.localizedDescription
+=======
+                        self.erro = FirebaseErrorHelper.mensagem(erro)
+                        FirebaseSyncCoordinator.shared.registrarErroPermissao(erro)
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
                         return
                     }
                     self.erro = nil
@@ -216,7 +225,11 @@ final class LancamentoService: ObservableObject {
             NotificacaoOfertaService.shared.notificarClientesInteressados(por: item)
             return ref.documentID
         } catch {
+<<<<<<< HEAD
             erro = error.localizedDescription
+=======
+            erro = FirebaseErrorHelper.mensagem(error)
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
             return nil
         }
     }
@@ -233,7 +246,11 @@ final class LancamentoService: ObservableObject {
             erro = nil
             return true
         } catch {
+<<<<<<< HEAD
             erro = error.localizedDescription
+=======
+            erro = FirebaseErrorHelper.mensagem(error)
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
             return false
         }
     }

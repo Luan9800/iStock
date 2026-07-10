@@ -1,0 +1,27 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function autenticado() {
+      return request.auth != null;
+    }
+
+    match /perfis/{userId}/{arquivo} {
+      allow read: if autenticado();
+      allow write: if autenticado() && request.auth.uid == userId;
+    }
+
+    match /cadastros/{cadastroId}/{arquivo} {
+      allow read, write: if autenticado();
+    }
+
+    match /avaliacoes/{avaliacaoId}/{caminho=**} {
+      allow read, write: if autenticado();
+    }
+
+    match /chat/{conversaId}/{arquivo} {
+      allow read, write: if autenticado();
+    }
+  }
+}

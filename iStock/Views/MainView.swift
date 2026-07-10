@@ -12,11 +12,18 @@ enum SidebarItem: String, Identifiable, CaseIterable, Hashable {
     case relatorios
     case avaliacoes
     case pesquisa
+<<<<<<< HEAD
+=======
+    case assistenteIA
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
     case cadastro
     case produtos
     case clientes
     case mensagens
+<<<<<<< HEAD
     case assistenteIA
+=======
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
 
     var id: String { rawValue }
 
@@ -26,11 +33,18 @@ enum SidebarItem: String, Identifiable, CaseIterable, Hashable {
         case .relatorios: return "Relatórios"
         case .avaliacoes: return "Avaliações"
         case .pesquisa: return "Pesquisa"
+<<<<<<< HEAD
+=======
+        case .assistenteIA: return "Assistente IA"
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
         case .cadastro: return "Cadastrar"
         case .produtos: return "Produtos"
         case .clientes: return "Clientes"
         case .mensagens: return "Mensagens"
+<<<<<<< HEAD
         case .assistenteIA: return "Assistente IA"
+=======
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
         }
     }
 
@@ -40,11 +54,18 @@ enum SidebarItem: String, Identifiable, CaseIterable, Hashable {
         case .relatorios: return "doc.richtext"
         case .avaliacoes: return "clock.badge.checkmark"
         case .pesquisa: return "magnifyingglass"
+<<<<<<< HEAD
+=======
+        case .assistenteIA: return "sparkles"
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
         case .cadastro: return "plus.rectangle.on.rectangle"
         case .produtos: return "shippingbox"
         case .clientes: return "person.2"
         case .mensagens: return "bubble.left.and.bubble.right"
+<<<<<<< HEAD
         case .assistenteIA: return "brain.head.profile"
+=======
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
         }
     }
 
@@ -53,11 +74,17 @@ enum SidebarItem: String, Identifiable, CaseIterable, Hashable {
         case .administrador:
             return allCases
         case .consultorVendas:
+<<<<<<< HEAD
             return [.painel, .avaliacoes, .pesquisa, .cadastro, .produtos, .clientes, .mensagens, .assistenteIA]
         case .cliente:
             return [.avaliacoes, .mensagens]
                     //.assistenteIA
                     //futuro podemos colocar também
+=======
+            return [.painel, .avaliacoes, .pesquisa, .assistenteIA, .cadastro, .produtos, .clientes, .mensagens]
+        case .cliente:
+            return [.avaliacoes, .mensagens]
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
         }
     }
 }
@@ -220,6 +247,11 @@ struct MainView: View {
             AvaliacoesView()
         case .pesquisa:
             PesquisaDefeitosView()
+<<<<<<< HEAD
+=======
+        case .assistenteIA:
+            AssistenteIAView()
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
         case .cadastro:
             CadastroProdutoView()
         case .produtos:
@@ -228,10 +260,13 @@ struct MainView: View {
             ListaClientesView()
         case .mensagens:
             ConversasView()
+<<<<<<< HEAD
         case .assistenteIA:
             NavigationStack{
             AIHomeView()
             }
+=======
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
         }
     }
 }

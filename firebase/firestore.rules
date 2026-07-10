@@ -1,0 +1,57 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function autenticado() {
+      return request.auth != null;
+    }
+
+    // Contadores públicos (ex.: limite de administradores no cadastro)
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if autenticado();
+    }
+
+    // Perfis de usuário — leitura para equipe autenticada; escrita apenas no próprio documento
+    match /usuarios/{userId} {
+      allow read: if autenticado();
+      allow create: if autenticado() && request.auth.uid == userId;
+      allow update, delete: if autenticado() && request.auth.uid == userId;
+    }
+
+    // Inventário compartilhado da loja
+    match /lancamentos/{docId} {
+      allow read, write: if autenticado();
+    }
+
+    match /clientes/{docId} {
+      allow read, write: if autenticado();
+    }
+
+    match /avaliacoes/{docId} {
+      allow read, write: if autenticado();
+    }
+
+    match /transacoes/{docId} {
+      allow read, write: if autenticado();
+    }
+
+    match /modelo_fotos/{docId} {
+      allow read, write: if autenticado();
+    }
+
+    // Chat — apenas participantes da conversa
+    match /conversas/{conversaId} {
+      allow create: if autenticado()
+        && request.auth.uid in request.resource.data.participantes;
+      allow read, update, delete: if autenticado()
+        && request.auth.uid in resource.data.participantes;
+
+      match /mensagens/{mensagemId} {
+        allow read, write: if autenticado()
+          && request.auth.uid in get(/databases/$(database)/documents/conversas/$(conversaId)).data.participantes;
+      }
+    }
+  }
+}

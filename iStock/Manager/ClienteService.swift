@@ -17,7 +17,11 @@ final class ClienteService: ObservableObject {
     @Published var clientes: [Cliente] = []
     @Published var erro: String?
 
+<<<<<<< HEAD
     private let colecao = Firestore.firestore().collection("clientes")
+=======
+    private let colecao = FirestoreProvider.db.collection("clientes")
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
     private var listener: ListenerRegistration?
 
     private init() {}
@@ -30,8 +34,14 @@ final class ClienteService: ObservableObject {
                 Task { @MainActor in
                     guard let self else { return }
                     if let erro {
+<<<<<<< HEAD
                         self.erro = erro.localizedDescription
                         print("Erro ao buscar clientes: \(erro.localizedDescription)")
+=======
+                        self.erro = FirebaseErrorHelper.mensagem(erro)
+                        FirebaseSyncCoordinator.shared.registrarErroPermissao(erro)
+                        print("Erro ao buscar clientes: \(FirebaseErrorHelper.mensagem(erro))")
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
                         return
                     }
                     self.erro = nil
@@ -65,8 +75,13 @@ final class ClienteService: ObservableObject {
             erro = nil
             return true
         } catch {
+<<<<<<< HEAD
             erro = error.localizedDescription
             print("Erro ao salvar cliente: \(error.localizedDescription)")
+=======
+            erro = FirebaseErrorHelper.mensagem(error)
+            print("Erro ao salvar cliente: \(FirebaseErrorHelper.mensagem(error))")
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
             return false
         }
     }

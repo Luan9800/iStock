@@ -18,7 +18,11 @@ final class ModeloFotoService: ObservableObject {
     @Published var fotos: [ModeloFoto] = []
     @Published var erro: String?
 
+<<<<<<< HEAD
     private let colecao = Firestore.firestore().collection("modelo_fotos")
+=======
+    private let colecao = FirestoreProvider.db.collection("modelo_fotos")
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
     private let fotosLocaisKey = "istock.cadastro.fotos"
     private var listener: ListenerRegistration?
 
@@ -32,8 +36,14 @@ final class ModeloFotoService: ObservableObject {
                 Task { @MainActor in
                     guard let self else { return }
                     if let erro {
+<<<<<<< HEAD
                         self.erro = erro.localizedDescription
                         print("Erro ao buscar fotos de cadastro: \(erro.localizedDescription)")
+=======
+                        self.erro = FirebaseErrorHelper.mensagem(erro)
+                        FirebaseSyncCoordinator.shared.registrarErroPermissao(erro)
+                        print("Erro ao buscar fotos de cadastro: \(FirebaseErrorHelper.mensagem(erro))")
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
                         return
                     }
                     self.erro = nil
@@ -106,8 +116,13 @@ final class ModeloFotoService: ObservableObject {
             erro = nil
             return true
         } catch {
+<<<<<<< HEAD
             erro = error.localizedDescription
             print("Erro ao adicionar foto do cadastro: \(error.localizedDescription)")
+=======
+            erro = FirebaseErrorHelper.mensagem(error)
+            print("Erro ao adicionar foto do cadastro: \(FirebaseErrorHelper.mensagem(error))")
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
             return false
         }
     }
@@ -125,8 +140,13 @@ final class ModeloFotoService: ObservableObject {
             try await colecao.document(id).delete()
             erro = nil
         } catch {
+<<<<<<< HEAD
             erro = error.localizedDescription
             print("Erro ao remover foto do cadastro: \(error.localizedDescription)")
+=======
+            erro = FirebaseErrorHelper.mensagem(error)
+            print("Erro ao remover foto do cadastro: \(FirebaseErrorHelper.mensagem(error))")
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
         }
     }
 

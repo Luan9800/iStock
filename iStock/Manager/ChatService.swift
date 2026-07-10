@@ -16,7 +16,11 @@ final class ChatService: ObservableObject {
     @Published var conversas: [Conversa] = []
     @Published var mensagens: [Mensagem] = []
 
+<<<<<<< HEAD
     private let db = Firestore.firestore()
+=======
+    private let db = FirestoreProvider.db
+>>>>>>> bfbd1e0 (Atualiza sincronização Firebase (banco istock) e FirestoreProvider)
     private var conversasListener: ListenerRegistration?
     private var mensagensListener: ListenerRegistration?
 

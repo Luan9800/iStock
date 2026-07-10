@@ -1,0 +1,11 @@
+{
+  "firestore": [
+    {
+      "database": "istock",
+      "rules": "firebase/firestore.rules"
+    }
+  ],
+  "storage": {
+    "rules": "firebase/storage.rules"
+  }
+}
