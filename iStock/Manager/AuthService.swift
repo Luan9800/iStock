@@ -6,9 +6,9 @@
 //
 
 import Combine
+import Foundation
 import FirebaseAuth
 import FirebaseCore
-import Foundation
 
 enum MetodoLogin {
     case local

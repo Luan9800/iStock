@@ -1,11 +1,16 @@
+//
+//  NegotiationChatView.swift
+//  iStock
+//
+//  Created by Luan Carlos on 08/07/26.
+//
+
+
 import SwiftUI
 
 struct NegotiationChatView: View {
-
     var body: some View {
-
         VStack(spacing: 30) {
-
             Spacer()
 
             Image(systemName: "handshake.fill")

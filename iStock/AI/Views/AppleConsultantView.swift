@@ -11,7 +11,6 @@ struct AppleConsultantView: View {
     var body: some View {
         
         List {
-            
             Section("Esse atendimento é para") {
                 NavigationLink("Meu cliente") {
                     
@@ -23,14 +22,10 @@ struct AppleConsultantView: View {
                 NavigationLink("Minha dúvida pessoal") {
                     Text("Chat técnico Apple")
                         .navigationTitle("Consultor Apple")
-                    
                 }
-                
             }
-            
         }
         .navigationTitle("Consultor Apple")
         
     }
-    
 }
