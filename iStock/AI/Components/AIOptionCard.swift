@@ -115,5 +115,14 @@ enum ModoAssistenteIA: String, CaseIterable, Identifiable {
             return ModoConsultorApple.pessoal.sugestoesChat
         }
     }
-}
 
+    /// Modos visíveis conforme o papel do usuário.
+    static func modos(para papel: PapelUsuario?) -> [ModoAssistenteIA] {
+        switch papel {
+        case .cliente:
+            return [.consultorTecnico]
+        default:
+            return Array(allCases)
+        }
+    }
+}

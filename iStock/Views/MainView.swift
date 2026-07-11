@@ -55,9 +55,7 @@ enum SidebarItem: String, Identifiable, CaseIterable, Hashable {
         case .consultorVendas:
             return [.painel, .avaliacoes, .pesquisa, .cadastro, .produtos, .clientes, .mensagens, .assistenteIA]
         case .cliente:
-            return [.avaliacoes, .mensagens]
-                    //.assistenteIA
-                    //futuro podemos colocar também
+            return [.avaliacoes, .mensagens, .assistenteIA]
         }
     }
 }
