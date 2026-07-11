@@ -90,17 +90,18 @@ struct AssistenteIAView: View {
                     }
                 }
             }
-            .padding(20)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
             .frame(maxWidth: 640)
             .frame(maxWidth: .infinity)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
             FundoTecnologicoView()
-                .ignoresSafeArea()
         }
         .navigationTitle("Assistente de IA")
         #if os(iOS)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         #endif
     }
 
@@ -128,7 +129,6 @@ struct AssistenteIAView: View {
             .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity)
-        .padding(.top, 8)
         .padding(.bottom, 4)
     }
 
@@ -307,7 +307,6 @@ struct CriteriosAssistenteView: View {
         }
         .background {
             FundoTecnologicoView()
-                .ignoresSafeArea()
         }
         .navigationTitle("Critérios da loja")
         #if os(iOS)

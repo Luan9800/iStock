@@ -78,80 +78,18 @@ struct MainView: View {
     }
 
     var body: some View {
-        ZStack {
+        NavigationSplitView {
+            sidebar
+        } detail: {
+            detalheView
+                .id(selection)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .background {
             FundoTecnologicoView()
-
-            VStack(spacing: 0) {
-                SyncStatusBanner()
-
-                NavigationSplitView {
-                    VStack(spacing: 16) {
-                        HStack(spacing: 10) {
-                            Image("AppLogo")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 32, height: 32)
-                                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                            Text("iStock")
-                                .font(.headline.weight(.bold))
-                                .foregroundStyle(.white)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 16)
-                        .padding(.top, 12)
-
-                        List {
-                            ForEach(abasPermitidas) { item in
-                                Button {
-                                    selection = item
-                                } label: {
-                                    HStack {
-                                        Label(item.title, systemImage: item.symbol)
-                                            .foregroundStyle(selection == item ? .white : .white.opacity(0.65))
-                                        Spacer()
-                                        if item == .painel && !notificacoesPainel.naoLidas.isEmpty {
-                                            Image(systemName: "bell.fill")
-                                                .font(.caption)
-                                                .foregroundStyle(.orange)
-                                        }
-                                        if item == .produtos && quantidadeParados > 0 {
-                                            Image(systemName: "exclamationmark.circle.fill")
-                                                .font(.caption)
-                                                .foregroundStyle(.red)
-                                        }
-                                        if item == .avaliacoes && !avaliacoes.emAvaliacao.isEmpty {
-                                            Image(systemName: "clock.fill")
-                                                .font(.caption)
-                                                .foregroundStyle(.orange)
-                                        }
-                                        if item == .avaliacoes && !avaliacoes.aprovadasSemPagamento.isEmpty {
-                                            Image(systemName: "banknote")
-                                                .font(.caption)
-                                                .foregroundStyle(.orange)
-                                        }
-                                    }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .contentShape(Rectangle())
-                                }
-                                .buttonStyle(.plain)
-                                .listRowBackground(
-                                    selection == item
-                                        ? Color.white.opacity(0.1)
-                                        : Color.clear
-                                )
-                            }
-                        }
-                        .listStyle(.sidebar)
-                        .scrollContentBackground(.hidden)
-                    }
-                    .background(PainelSidebarView())
-                    .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 280)
-                } detail: {
-                    detalheView
-                        .id(selection)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-            }
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            SyncStatusBanner()
         }
         #if os(macOS)
         .frame(minWidth: 900, minHeight: 600)
@@ -205,6 +143,69 @@ struct MainView: View {
                 selection = primeira
             }
         }
+    }
+
+    private var sidebar: some View {
+        List {
+            ForEach(abasPermitidas) { item in
+                Button {
+                    selection = item
+                } label: {
+                    HStack {
+                        Label(item.title, systemImage: item.symbol)
+                            .foregroundStyle(selection == item ? .white : .white.opacity(0.65))
+                        Spacer()
+                        if item == .painel && !notificacoesPainel.naoLidas.isEmpty {
+                            Image(systemName: "bell.fill")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                        }
+                        if item == .produtos && quantidadeParados > 0 {
+                            Image(systemName: "exclamationmark.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        }
+                        if item == .avaliacoes && !avaliacoes.emAvaliacao.isEmpty {
+                            Image(systemName: "clock.fill")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                        }
+                        if item == .avaliacoes && !avaliacoes.aprovadasSemPagamento.isEmpty {
+                            Image(systemName: "banknote")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .listRowBackground(
+                    selection == item
+                        ? Color.white.opacity(0.1)
+                        : Color.clear
+                )
+                .tag(item)
+            }
+        }
+        .listStyle(.sidebar)
+        .scrollContentBackground(.hidden)
+        .background(PainelSidebarView())
+        .navigationTitle("iStock")
+        #if os(macOS)
+        .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 280)
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                HStack(spacing: 8) {
+                    Image("AppLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 22, height: 22)
+                        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+                }
+            }
+        }
+        #endif
     }
 
     @ViewBuilder

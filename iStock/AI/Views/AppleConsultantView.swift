@@ -152,6 +152,10 @@ struct AssistenteChatView: View {
             .padding(.horizontal)
             .padding(.vertical, 10)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+            FundoTecnologicoView()
+        }
         .navigationTitle(titulo)
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)

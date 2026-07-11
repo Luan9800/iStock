@@ -51,5 +51,10 @@ struct iStockApp: App {
             }
             .preferredColorScheme(.dark)
         }
+        #if os(macOS)
+        .windowStyle(.titleBar)
+        .windowToolbarStyle(.unified)
+        .defaultSize(width: 1100, height: 720)
+        #endif
     }
 }

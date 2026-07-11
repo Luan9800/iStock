@@ -38,7 +38,6 @@ struct FundoTecnologicoView: View {
     var body: some View {
         ZStack {
             AppTheme.gradienteFundo
-                .ignoresSafeArea()
 
             GeometryReader { geo in
                 Circle()
@@ -59,8 +58,9 @@ struct FundoTecnologicoView: View {
                     .padding(.trailing, 24)
                     .padding(.bottom, 20)
             }
-            .ignoresSafeArea()
         }
+        .ignoresSafeArea()
+        .allowsHitTesting(false)
     }
 }
 
@@ -233,18 +233,18 @@ struct LayoutTelaView<Content: View, Trailing: View>: View {
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        ZStack {
-            FundoTecnologicoView()
-
-            Group {
-                if rolar {
-                    ScrollView(showsIndicators: false) {
-                        conteudoPrincipal
-                    }
-                } else {
+        Group {
+            if rolar {
+                ScrollView(showsIndicators: false) {
                     conteudoPrincipal
                 }
+            } else {
+                conteudoPrincipal
             }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background {
+            FundoTecnologicoView()
         }
         .preferredColorScheme(.dark)
     }
