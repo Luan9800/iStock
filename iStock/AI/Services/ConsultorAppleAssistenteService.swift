@@ -24,6 +24,8 @@ final class ConsultorAppleAssistenteService {
 
     Regras de resposta:
     - Português brasileiro, tom consultivo e profissional
+    - Respeite os [Critérios da loja] quando enviados
+    - No modo técnico, foque em diagnóstico, defeitos conhecidos e checklist de inspeção
     - Use seções com emojis: 📌 ✨ ⚖️ 💡 💬 🔗
     - Inclua frases prontas que o consultor pode dizer ao cliente
     - Destaque diferenciais práticos, não só especificações técnicas
@@ -83,13 +85,18 @@ final class ConsultorAppleAssistenteService {
     private func enriquecerComContexto(_ pergunta: String, contexto: ContextoConsultorApple) -> String {
         let modo = contexto.modo == .cliente
             ? "Atendimento para cliente (incluir frases de venda)"
-            : "Consulta pessoal do consultor"
+            : "Consulta técnica / dúvida pessoal do consultor"
 
-        let produtos = contexto.produtosEstoque.filter(\.estaNoEstoque).prefix(8)
         var bloco = "[Modo: \(modo)]\n"
+        bloco += "[Critérios da loja]\n\(contexto.criterios.blocoPrompt)\n\n"
 
-        if !produtos.isEmpty {
-            let lista = produtos.map { produto in
+        let produtos = contexto.produtosEstoque.filter(\.estaNoEstoque)
+        let filtrados = contexto.criterios.priorizarLacrado
+            ? produtos.sorted { ($0.lacrado ? 0 : 1) < ($1.lacrado ? 0 : 1) }
+            : Array(produtos)
+
+        if !filtrados.isEmpty {
+            let lista = filtrados.prefix(8).map { produto in
                 var linha = "- \(produto.tituloExibicao): \(Formatters.brl(produto.valor))"
                 if produto.lacrado { linha += " (lacrado)" }
                 return linha

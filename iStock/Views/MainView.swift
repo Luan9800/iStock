@@ -30,7 +30,7 @@ enum SidebarItem: String, Identifiable, CaseIterable, Hashable {
         case .produtos: return "Produtos"
         case .clientes: return "Clientes"
         case .mensagens: return "Mensagens"
-        case .assistenteIA: return "Assistente IA"
+        case .assistenteIA: return "Assistente de IA"
         }
     }
 
@@ -44,7 +44,7 @@ enum SidebarItem: String, Identifiable, CaseIterable, Hashable {
         case .produtos: return "shippingbox"
         case .clientes: return "person.2"
         case .mensagens: return "bubble.left.and.bubble.right"
-        case .assistenteIA: return "brain.head.profile"
+        case .assistenteIA: return "sparkles"
         }
     }
 
@@ -229,8 +229,8 @@ struct MainView: View {
         case .mensagens:
             ConversasView()
         case .assistenteIA:
-            NavigationStack{
-            AIHomeView()
+            NavigationStack {
+                AssistenteIAView()
             }
         }
     }

@@ -2,43 +2,21 @@
 //  NegotiationChatView.swift
 //  iStock
 //
-//  Created by Luan Carlos on 08/07/26.
-//
-
 
 import SwiftUI
 
 struct NegotiationChatView: View {
+    @StateObject private var viewModel = NegociacaoChatViewModel()
+
     var body: some View {
-        VStack(spacing: 30) {
-            Spacer()
-
-            Image(systemName: "handshake.fill")
-                .font(.system(size: 70))
-                .foregroundStyle(.green)
-
-            Text("Assistente de Negociação")
-                .font(.largeTitle.bold())
-
-            Text("""
-Descreva a negociação normalmente.
-
-Exemplo:
-
-• Cliente quer pagar R$ 3.900.
-
-• Cliente quer trocar um iPhone 13 em um 15 Pro.
-
-• Cliente pediu desconto.
-""")
-            .multilineTextAlignment(.center)
-            .foregroundStyle(.secondary)
-
-            Spacer()
-
-        }
-        .padding()
-        .navigationTitle("Negociação")
+        AssistenteChatView(
+            titulo: "Negociação",
+            sugestoes: SugestaoRapidaNegociacao.textosNegociacao,
+            mensagens: viewModel.mensagens,
+            processando: viewModel.processando,
+            onEnviar: { texto in await viewModel.enviar(texto) },
+            onLimpar: { viewModel.limparConversa() }
+        )
+        .onAppear { viewModel.iniciar() }
     }
-
 }

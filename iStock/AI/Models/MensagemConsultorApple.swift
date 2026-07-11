@@ -40,11 +40,29 @@ enum ModoConsultorApple: String, CaseIterable, Identifiable {
         case .pessoal: return "person.fill.questionmark"
         }
     }
+
+    var sugestoesChat: [String] {
+        switch self {
+        case .cliente:
+            return [
+                "Cliente busca iPhone com boa câmera até R$ 5.000",
+                "O que temos em estoque de MacBook para estudante?",
+                "Compare iPhone 14 Pro e 15 Pro para o cliente",
+            ]
+        case .pessoal:
+            return [
+                "iPhone 13 aquecendo após atualização",
+                "MacBook Pro teclado butterfly travando",
+                "AirPods Pro com chiado no ANC — o que verificar?",
+            ]
+        }
+    }
 }
 
 struct ContextoConsultorApple {
     var produtosEstoque: [Lancamento] = []
     var modo: ModoConsultorApple = .cliente
+    var criterios: CriteriosAssistente = .padrao
 }
 
 enum IntencaoConsultorApple {

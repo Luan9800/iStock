@@ -13,10 +13,6 @@ final class NegociacaoChatViewModel: ObservableObject {
 
     private let assistente = NegociacaoAssistenteService()
 
-    var sugestoes: [SugestaoRapidaNegociacao] {
-        SugestaoRapidaNegociacao.padroes
-    }
-
     func iniciar() {
         guard mensagens.isEmpty else { return }
         mensagens.append(MensagemNegociacao(
@@ -32,17 +28,16 @@ final class NegociacaoChatViewModel: ObservableObject {
         mensagens.append(MensagemNegociacao(papel: .usuario, texto: pergunta))
         processando = true
 
-        let contexto = ContextoNegociacao(produtosEstoque: LancamentoService.shared.lancamentos)
+        let contexto = ContextoNegociacao(
+            produtosEstoque: LancamentoService.shared.lancamentos,
+            criterios: CriteriosAssistenteStore.shared.criterios
+        )
         let resposta = await AssistenteIATiming.aguardarResposta {
             await self.assistente.responder(pergunta: pergunta, contexto: contexto)
         }
 
         mensagens.append(MensagemNegociacao(papel: .assistente, texto: resposta))
         processando = false
-    }
-
-    func usarSugestao(_ sugestao: SugestaoRapidaNegociacao) async {
-        await enviar(sugestao.texto)
     }
 
     func limparConversa() {

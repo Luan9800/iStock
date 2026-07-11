@@ -26,6 +26,7 @@ final class NegociacaoAssistenteService {
 
     Regras de resposta:
     - Português brasileiro, tom profissional e direto
+    - Respeite SEMPRE os [Critérios da loja] enviados no contexto (margem, desconto máximo, troca, tom)
     - Use seções curtas com emojis: 📌 💡 💬 💰 ⚠️
     - Sempre inclua frases prontas que o consultor pode dizer ao cliente
     - Quando houver valores, use formato R$ brasileiro
@@ -82,23 +83,36 @@ final class NegociacaoAssistenteService {
     }
 
     private func enriquecerComContexto(_ pergunta: String, contexto: ContextoNegociacao) -> String {
-        let produtos = contexto.produtosEstoque.filter(\.estaNoEstoque).prefix(8)
-        guard !produtos.isEmpty else { return pergunta }
+        var blocos: [String] = []
 
-        let lista = produtos.map { produto in
-            var linha = "- \(produto.tituloExibicao): \(Formatters.brl(produto.valor)) (\(produto.status.rawValue))"
-            if let margem = produto.margemPercentual {
-                linha += ", margem \(String(format: "%.0f", margem))%"
-            }
-            return linha
-        }.joined(separator: "\n")
+        blocos.append("""
+        [Critérios da loja]
+        \(contexto.criterios.blocoPrompt)
+        """)
 
-        return """
-        [Contexto do estoque iStock]
-        \(lista)
+        let produtos = contexto.produtosEstoque.filter(\.estaNoEstoque)
+        let filtrados = contexto.criterios.priorizarLacrado
+            ? produtos.sorted { ($0.lacrado ? 0 : 1) < ($1.lacrado ? 0 : 1) }
+            : Array(produtos)
+        let amostra = filtrados.prefix(8)
 
-        [Pergunta do consultor]
-        \(pergunta)
-        """
+        if !amostra.isEmpty {
+            let lista = amostra.map { produto in
+                var linha = "- \(produto.tituloExibicao): \(Formatters.brl(produto.valor)) (\(produto.status.rawValue))"
+                if let margem = produto.margemPercentual {
+                    linha += ", margem \(String(format: "%.0f", margem))%"
+                }
+                if produto.lacrado { linha += " [lacrado]" }
+                return linha
+            }.joined(separator: "\n")
+            blocos.append("[Contexto do estoque iStock]\n\(lista)")
+        }
+
+        if !contexto.criterios.aceitarTroca {
+            blocos.append("[Política] Troca/permuta não é prioridade nesta loja.")
+        }
+
+        blocos.append("[Pergunta do consultor]\n\(pergunta)")
+        return blocos.joined(separator: "\n\n")
     }
 }

@@ -17,6 +17,7 @@ enum IntencaoNegociacao {
 
 struct ContextoNegociacao {
     var produtosEstoque: [Lancamento] = []
+    var criterios: CriteriosAssistente = .padrao
 }
 
 struct NegociacaoMotorLocal {
@@ -29,24 +30,46 @@ struct NegociacaoMotorLocal {
 
         let intencao = detectarIntencao(texto)
         let valores = extrairValores(texto)
-        let produtos = detectarProdutos(no: texto, estoque: contexto.produtosEstoque)
+        var estoque = contexto.produtosEstoque
+        if contexto.criterios.priorizarLacrado {
+            estoque = estoque.sorted { ($0.lacrado ? 0 : 1) < ($1.lacrado ? 0 : 1) }
+        }
+        let produtos = detectarProdutos(no: texto, estoque: estoque)
+        let criterios = contexto.criterios
 
+        let corpo: String
         switch intencao {
         case .desconto:
-            return respostaDesconto(texto: texto, valores: valores, produtos: produtos)
+            corpo = respostaDesconto(texto: texto, valores: valores, produtos: produtos, criterios: criterios)
         case .troca:
-            return respostaTroca(texto: texto, valores: valores, produtos: produtos)
+            if !criterios.aceitarTroca {
+                corpo = """
+                📌 **Situação:** pedido de troca
+
+                ⚠️ Pelos critérios da loja, **troca/permuta não é prioridade**.
+
+                💡 **Estratégia**
+                Oriente compra à vista ou com entrada em dinheiro. Se quiser abrir exceção, recalcule margem mínima de \(Int(criterios.margemMinimaPercentual))%.
+
+                💬 **Sugestão de fala**
+                "Hoje priorizamos venda direta para garantir o melhor preço e suporte. Posso montar uma condição especial no PIX para você."
+                """
+            } else {
+                corpo = respostaTroca(texto: texto, valores: valores, produtos: produtos)
+            }
         case .contraproposta:
-            return respostaContraproposta(texto: texto, valores: valores, produtos: produtos)
+            corpo = respostaContraproposta(texto: texto, valores: valores, produtos: produtos)
         case .fechamento:
-            return respostaFechamento(texto: texto, produtos: produtos)
+            corpo = respostaFechamento(texto: texto, produtos: produtos)
         case .objeção:
-            return respostaObjecao(texto: texto, produtos: produtos)
+            corpo = respostaObjecao(texto: texto, produtos: produtos)
         case .parcelamento:
-            return respostaParcelamento(texto: texto, valores: valores, produtos: produtos)
+            corpo = respostaParcelamento(texto: texto, valores: valores, produtos: produtos)
         case .geral:
-            return respostaGeral(texto: texto, produtos: produtos)
+            corpo = respostaGeral(texto: texto, produtos: produtos)
         }
+
+        return corpo + "\n\n⚙️ _Critérios: desconto máx. \(Int(criterios.descontoMaximoPercentual))%, margem mín. \(Int(criterios.margemMinimaPercentual))%, tom \(criterios.tomAtendimento.rotulo.lowercased())._"
     }
 
     func mensagemBoasVindas() -> String {
@@ -143,51 +166,55 @@ struct NegociacaoMotorLocal {
 
     // MARK: - Respostas
 
-    private func respostaDesconto(texto: String, valores: [Double], produtos: [Lancamento]) -> String {
+    private func respostaDesconto(texto: String, valores: [Double], produtos: [Lancamento], criterios: CriteriosAssistente) -> String {
         let precoVenda = produtos.first?.valor ?? (valores.count >= 2 ? valores[0] : nil)
         let valorPedido = valorOfertado(valores: valores, precoReferencia: produtos.first?.valor)
+        let teto = criterios.descontoMaximoPercentual
 
         var resposta = "📌 **Situação:** pedido de desconto\n\n"
 
         if let preco = precoVenda, let pedido = valorPedido, pedido < preco {
             let desconto = preco - pedido
             let percentual = (desconto / preco) * 100
-            let contraproposta = preco - (desconto * 0.55)
+            let descontoPermitido = preco * (teto / 100)
+            let piso = max(preco - descontoPermitido, preco - desconto * 0.55)
+            let contraproposta = max(piso, criterios.valorMinimoMargem)
 
             resposta += """
             💰 **Análise rápida**
             • Preço de venda: \(Formatters.brl(preco))
             • Valor pedido: \(Formatters.brl(pedido))
             • Desconto solicitado: \(Formatters.brl(desconto)) (\(String(format: "%.1f", percentual))%)
+            • Teto da loja: \(Int(teto))%
 
             """
 
             if let margem = produtos.first?.margemPercentual {
-                resposta += "• Margem atual: \(String(format: "%.0f", margem))%\n\n"
+                resposta += "• Margem atual: \(String(format: "%.0f", margem))% (mín. \(Int(criterios.margemMinimaPercentual))%)\n\n"
             }
 
-            if percentual <= 5 {
+            if percentual <= teto * 0.6 {
                 resposta += estrategiaFechamentoRapido(valor: pedido)
-            } else if percentual <= 10 {
+            } else if percentual <= teto {
                 resposta += """
                 💡 **Estratégia**
-                Desconto moderado. Tente contrapropor em \(Formatters.brl(contraproposta)) com algo de valor percebido (capa, película ou garantia estendida).
+                Dentro do teto. Tente \(Formatters.brl(contraproposta)) com valor percebido (capa, película ou garantia).
 
                 💬 **Sugestão de fala**
-                "Consigo chegar em \(Formatters.brl(contraproposta)) para fecharmos hoje, com película e capa inclusas. Esse é o melhor que consigo autorizar agora."
+                "Consigo chegar em \(Formatters.brl(contraproposta)) para fecharmos hoje. Esse é o melhor que consigo autorizar agora."
 
                 """
             } else {
                 resposta += """
-                ⚠️ **Atenção:** desconto alto. Evite ceder tudo de uma vez.
+                ⚠️ **Atenção:** pedido acima do desconto máximo (\(Int(teto))%).
 
                 💡 **Estratégia**
-                1. Ancore o valor do produto (estado, bateria, garantia, acessórios).
-                2. Ofereça contraproposta em \(Formatters.brl(contraproposta)).
-                3. Se insistir, condicione desconto máximo a pagamento à vista no PIX.
+                1. Ancore o valor do produto.
+                2. Ofereça no máximo \(Formatters.brl(preco - descontoPermitido)).
+                3. Condicione a PIX à vista.
 
                 💬 **Sugestão de fala**
-                "Entendo sua proposta. O aparelho está \(produtos.first?.lacrado == true ? "lacrado" : "em excelente estado") e já está com preço competitivo. Consigo \(Formatters.brl(contraproposta)) com pagamento à vista — é o melhor cenário que consigo montar."
+                "Entendo. Consigo no máximo \(Formatters.brl(preco - descontoPermitido)) no PIX — além disso a margem da loja não fecha."
 
                 """
             }
@@ -197,6 +224,7 @@ struct NegociacaoMotorLocal {
             • Pergunte qual valor o cliente tinha em mente.
             • Reforce diferenciais: garantia, revisão, suporte e procedência.
             • Ofereça benefício em vez de desconto bruto (acessório, transferência de dados).
+            • Desconto máximo autorizado: \(Int(teto))%.
 
             💬 **Sugestão de fala**
             "Posso verificar uma condição especial para você. Qual valor ficaria confortável para fecharmos hoje?"
