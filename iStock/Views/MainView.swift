@@ -81,15 +81,15 @@ struct MainView: View {
         NavigationSplitView {
             sidebar
         } detail: {
-            detalheView
-                .id(selection)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            VStack(spacing: 0) {
+                SyncStatusBanner()
+                detalheView
+                    .id(selection)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
         .background {
             FundoTecnologicoView()
-        }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            SyncStatusBanner()
         }
         #if os(macOS)
         .frame(minWidth: 900, minHeight: 600)
