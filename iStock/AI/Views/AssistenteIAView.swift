@@ -32,16 +32,27 @@ struct AssistenteIAView: View {
                 NavigationLink {
                     CriteriosAssistenteView()
                 } label: {
-                    HStack(spacing: 10) {
+                    HStack(spacing: 12) {
                         Image(systemName: "slider.horizontal.3")
-                        Text("Critérios da loja")
-                            .fontWeight(.semibold)
+                            .font(.title3)
+                            .foregroundStyle(AppTheme.azulClaro)
+                            .frame(width: 28)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Critérios da loja")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                            Text("Margens, descontos e tom usados pelo assistente")
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.55))
+                        }
+
                         Spacer()
+
                         Image(systemName: "chevron.right")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
                     }
-                    .foregroundStyle(.white)
                     .padding()
                     .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
                 }
@@ -49,7 +60,7 @@ struct AssistenteIAView: View {
 
                 CartaoVidroView {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Critérios ativos")
+                        Text("Regras ativas agora")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.secondary)
                         Text(criteriosStore.criterios.resumo)
@@ -60,7 +71,7 @@ struct AssistenteIAView: View {
                         let notas = criteriosStore.criterios.notasPersonalizadas
                             .trimmingCharacters(in: .whitespacesAndNewlines)
                         if !notas.isEmpty {
-                            Text(notas)
+                            Text("Notas: \(notas)")
                                 .font(.caption)
                                 .foregroundStyle(.white.opacity(0.55))
                         }
@@ -125,7 +136,14 @@ struct CriteriosAssistenteView: View {
 
     var body: some View {
         Form {
-            Section("Margens e descontos") {
+            Section {
+                Text("O assistente usa estas regras em todas as conversas de negociação e consultoria.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Section {
                 Stepper(
                     "Margem mínima: \(Int(rascunho.margemMinimaPercentual))%",
                     value: $rascunho.margemMinimaPercentual,
@@ -146,12 +164,16 @@ struct CriteriosAssistenteView: View {
                         #if os(iOS)
                         .keyboardType(.decimalPad)
                         #endif
-                        .frame(width: 100)
+                        .frame(minWidth: 80, maxWidth: 120)
                 }
+            } header: {
+                Text("Margens e descontos")
+            } footer: {
+                Text("Define o quanto a loja pode ceder sem comprometer o lucro.")
             }
 
-            Section("Atendimento") {
-                Picker("Tom", selection: $rascunho.tomAtendimento) {
+            Section {
+                Picker("Tom de atendimento", selection: $rascunho.tomAtendimento) {
                     ForEach(TomAtendimento.allCases) { tom in
                         Text(tom.rotulo).tag(tom)
                     }
@@ -162,16 +184,22 @@ struct CriteriosAssistenteView: View {
                     }
                 }
                 Toggle("Aceitar troca / permuta", isOn: $rascunho.aceitarTroca)
-                Toggle("Priorizar produtos lacrados", isOn: $rascunho.priorizarLacrado)
+                Toggle("Priorizar produtos lacrados nas sugestões", isOn: $rascunho.priorizarLacrado)
+            } header: {
+                Text("Atendimento")
             }
 
-            Section("Notas da loja") {
+            Section {
                 TextField(
                     "Ex.: Garantia de 90 dias, PIX com 3% de desconto…",
                     text: $rascunho.notasPersonalizadas,
                     axis: .vertical
                 )
                 .lineLimit(3...6)
+            } header: {
+                Text("Notas da loja")
+            } footer: {
+                Text("Políticas, garantia, diferenciais e outras orientações para o assistente.")
             }
 
             Section {
@@ -195,7 +223,7 @@ struct CriteriosAssistenteView: View {
                 .disabled(salvando)
             }
         }
-        .navigationTitle("Critérios")
+        .navigationTitle("Critérios da loja")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif

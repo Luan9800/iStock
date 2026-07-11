@@ -101,7 +101,10 @@ struct CriteriosAssistente: Codable, Equatable {
     )
 
     var resumo: String {
-        "margem \(Int(margemMinimaPercentual))% · desconto máx. \(Int(descontoMaximoPercentual))% · tom \(tomAtendimento.rotulo.lowercased()) · flexibilidade \(flexibilidadePreco.rotulo.lowercased())"
+        """
+        Margem mín. \(Int(margemMinimaPercentual))% · Desconto máx. \(Int(descontoMaximoPercentual))% · Margem R$ \(Int(valorMinimoMargem))
+        Tom \(tomAtendimento.rotulo) · Flexibilidade \(flexibilidadePreco.rotulo.lowercased()) · Troca \(aceitarTroca ? "sim" : "não") · Lacrado \(priorizarLacrado ? "sim" : "não")
+        """.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     var blocoPrompt: String {
