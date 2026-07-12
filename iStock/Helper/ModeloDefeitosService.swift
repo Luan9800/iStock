@@ -349,7 +349,7 @@ enum ModeloDefeitosService {
                 ProblemaModelo(id: "gen-bateria", titulo: "Bateria", descricao: "Verificar saúde da bateria e ciclos de carga.", gravidade: .moderado),
                 ProblemaModelo(id: "gen-tela", titulo: "Tela e Face ID", descricao: "Testar display, toque e biometria após quedas.", gravidade: .moderado)
             ]
-        case .macbook, .mac:
+        case .macbook, .iMac:
             return [
                 ProblemaModelo(id: "gen-ssd", titulo: "Armazenamento", descricao: "Rodar diagnóstico de disco e SMART se disponível.", gravidade: .moderado),
                 ProblemaModelo(id: "gen-teclado", titulo: "Teclado e trackpad", descricao: "Testar todas as teclas e cliques.", gravidade: .leve)

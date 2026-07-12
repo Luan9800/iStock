@@ -5,13 +5,13 @@
 //  Created by Luan Carlos on 04/07/26.
 //
 
+import SwiftUI
 import Foundation
 import FirebaseFirestore
-import SwiftUI
 
 enum TipoProduto: String, Codable, CaseIterable, Identifiable {
     case iphone = "iPhone"
-    case mac = "Mac"
+    case iMac = "iMac"
     case watch = "Watch"
     case ipad = "iPad"
     case appleWatch = "Apple Watch"
@@ -27,7 +27,7 @@ enum TipoProduto: String, Codable, CaseIterable, Identifiable {
     var sfSymbol: String {
         switch self {
         case .iphone: return "iphone"
-        case .mac: return "desktopcomputer"
+        case .iMac: return "desktopcomputer"
         case .watch: return "applewatch"
         case .ipad: return "ipad"
         case .appleWatch: return "applewatch"
@@ -49,7 +49,7 @@ enum TipoProduto: String, Codable, CaseIterable, Identifiable {
 
     var suportaCapacidade: Bool {
         switch self {
-        case .iphone, .ipad, .mac, .macbook, .ipod, .appleTV: return true
+        case .iphone, .ipad, .iMac, .macbook, .ipod, .appleTV: return true
         default: return false
         }
     }

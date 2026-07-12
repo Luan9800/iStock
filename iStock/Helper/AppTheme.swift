@@ -13,19 +13,19 @@ enum AppTheme {
     static let azulClaro = Color(red: 0.45, green: 0.72, blue: 1.0)          // tom mais suave
     static let azulProfundo = Color(red: 0.06, green: 0.08, blue: 0.12)
     static let azulNoite = Color(red: 0.04, green: 0.05, blue: 0.08)
-
+    
     static let gradienteFundo = LinearGradient(
         colors: [azulNoite, azulProfundo, Color(red: 0.08, green: 0.10, blue: 0.14)],
         startPoint: .topLeading,
         endPoint: .bottomTrailing
     )
-
+    
     static let gradienteBotao = LinearGradient(
         colors: [azulClaro.opacity(0.95), azulPrimario.opacity(0.9), azulEscuro.opacity(0.95)],
         startPoint: .leading,
         endPoint: .trailing
     )
-
+    
     static let gradienteBrilho = RadialGradient(
         colors: [azulClaro.opacity(0.12), .clear],
         center: .center,
@@ -38,21 +38,21 @@ struct FundoTecnologicoView: View {
     var body: some View {
         ZStack {
             AppTheme.gradienteFundo
-
+            
             GeometryReader { geo in
                 Circle()
                     .fill(AppTheme.gradienteBrilho)
                     .frame(width: 420, height: 420)
                     .offset(x: geo.size.width * 0.55, y: -80)
-
+                
                 Circle()
                     .fill(AppTheme.azulPrimario.opacity(0.03))
                     .frame(width: 300, height: 300)
                     .offset(x: -geo.size.width * 0.3, y: geo.size.height * 0.65)
-
+                
                 GridTecnologicoView()
                     .opacity(0.04)
-
+                
                 MarcaDaguaInferiorView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                     .padding(.trailing, 24)
@@ -69,7 +69,7 @@ private struct MarcaDaguaInferiorView: View {
         VStack(alignment: .center, spacing: 6) {
             Image(systemName: "apple.logo")
                 .font(.system(size: 68, weight: .thin))
-
+            
             Text("iStock")
                 .font(.system(size: 28, weight: .bold, design: .rounded))
                 .tracking(1.5)
@@ -84,7 +84,7 @@ private struct GridTecnologicoView: View {
         Canvas { context, size in
             let espacamento: CGFloat = 32
             var path = Path()
-
+            
             stride(from: 0, through: size.width, by: espacamento).forEach { x in
                 path.move(to: CGPoint(x: x, y: 0))
                 path.addLine(to: CGPoint(x: x, y: size.height))
@@ -93,15 +93,15 @@ private struct GridTecnologicoView: View {
                 path.move(to: CGPoint(x: 0, y: y))
                 path.addLine(to: CGPoint(x: size.width, y: y))
             }
-
+            
             context.stroke(path, with: .color(.white), lineWidth: 0.5)
         }
     }
 }
 
 struct CartaoVidroView<Content: View>: View {
-  @ViewBuilder let content: Content
-
+    @ViewBuilder let content: Content
+    
     var body: some View {
         content
             .padding(24)
@@ -133,14 +133,14 @@ struct CampoLoginView: View {
     let placeholder: String
     @Binding var texto: String
     var ehSenha = false
-
+    
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icone)
                 .font(.body.weight(.semibold))
                 .foregroundStyle(AppTheme.azulClaro)
                 .frame(width: 22)
-
+            
             Group {
                 if ehSenha {
                     SecureField(placeholder, text: $texto)
@@ -149,10 +149,10 @@ struct CampoLoginView: View {
                 }
             }
             .textFieldStyle(.plain)
-            #if os(iOS)
+#if os(iOS)
             .textInputAutocapitalization(ehSenha ? .never : placeholder.contains("mail") ? .never : .words)
             .keyboardType(placeholder.contains("mail") ? .emailAddress : placeholder.contains("one") ? .phonePad : .default)
-            #endif
+#endif
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
@@ -169,7 +169,7 @@ struct BotaoPrimarioView: View {
     let titulo: String
     var desabilitado = false
     let acao: () -> Void
-
+    
     var body: some View {
         Button(action: acao) {
             Text(titulo)
@@ -195,7 +195,7 @@ struct BotaoPrimarioView: View {
 
 struct SeletorModoAuthView: View {
     @Binding var selecao: ModoAutenticacao
-
+    
     var body: some View {
         HStack(spacing: 0) {
             ForEach(ModoAutenticacao.allCases) { modo in
@@ -231,7 +231,7 @@ struct LayoutTelaView<Content: View, Trailing: View>: View {
     var rolar = true
     @ViewBuilder var trailing: () -> Trailing
     @ViewBuilder var content: () -> Content
-
+    
     var body: some View {
         Group {
             if rolar {
@@ -248,17 +248,17 @@ struct LayoutTelaView<Content: View, Trailing: View>: View {
         }
         .preferredColorScheme(.dark)
     }
-
+    
     private var conteudoPrincipal: some View {
         VStack(alignment: .leading, spacing: 20) {
             BarraPerfilSuperiorView()
-
+            
             HStack(alignment: .top, spacing: 12) {
                 TituloTelaView(titulo: titulo, subtitulo: subtitulo)
                 Spacer(minLength: 8)
                 trailing()
             }
-
+            
             if usaCartao {
                 CartaoVidroView {
                     content()
@@ -293,7 +293,7 @@ struct AppShellView<Content: View>: View {
     let titulo: String
     var subtitulo: String? = nil
     @ViewBuilder let content: Content
-
+    
     var body: some View {
         LayoutTelaView(titulo: titulo, subtitulo: subtitulo, usaCartao: true) {
             content
@@ -304,7 +304,7 @@ struct AppShellView<Content: View>: View {
 struct TituloTelaView: View {
     let titulo: String
     var subtitulo: String? = nil
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(titulo)
@@ -324,7 +324,7 @@ typealias CampoAppView = CampoLoginView
 struct BotaoSecundarioView: View {
     let titulo: String
     let acao: () -> Void
-
+    
     var body: some View {
         Button(action: acao) {
             Text(titulo)
@@ -336,8 +336,8 @@ struct BotaoSecundarioView: View {
 }
 
 struct ItemVidroView<Content: View>: View {
-  @ViewBuilder let content: Content
-
+    @ViewBuilder let content: Content
+    
     var body: some View {
         content
             .padding(14)
@@ -353,7 +353,7 @@ struct EstadoVazioView: View {
     let icone: String
     let titulo: String
     let mensagem: String
-
+    
     var body: some View {
         VStack(spacing: 14) {
             Image(systemName: icone)
@@ -372,11 +372,24 @@ struct EstadoVazioView: View {
     }
 }
 
+extension ToolbarContent {
+    @ToolbarContentBuilder
+    func semFundoAutomatico() -> some ToolbarContent {
+        if #available(macOS 26.0, iOS 18.0, *) {
+            self.sharedBackgroundVisibility(.hidden)
+        } else {
+            self
+        }
+    }
+}
+
 struct BadgeAppView: View {
     let texto: String
     var cor: Color = AppTheme.azulClaro
     var amplo: Bool = false
-
+    
+    private var raio: CGFloat { amplo ? 10 : 6 }
+    
     var body: some View {
         Text(texto)
             .font(amplo ? .caption.weight(.semibold) : .caption2.weight(.semibold))
@@ -384,8 +397,12 @@ struct BadgeAppView: View {
             .padding(.horizontal, amplo ? 14 : 7)
             .padding(.vertical, amplo ? 7 : 4)
             .background(
-                cor.opacity(0.18),
-                in: RoundedRectangle(cornerRadius: amplo ? 10 : 6, style: .continuous)
+                RoundedRectangle(cornerRadius: raio, style: .continuous)
+                    .fill(cor.opacity(0.18))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: raio, style: .continuous)
+                    .strokeBorder(cor.opacity(0.45), lineWidth: 1)
             )
             .foregroundStyle(cor)
     }

@@ -50,7 +50,7 @@ enum AvaliacaoPrecificador {
         case .iphone: return 3_800
         case .ipad: return 2_600
         case .macbook: return 6_200
-        case .mac: return 4_800
+        case .iMac: return 4_800
         case .appleWatch, .watch: return 1_900
         case .airpods: return 950
         case .appleTV: return 1_350

@@ -81,13 +81,13 @@ struct MainView: View {
         NavigationSplitView {
             sidebar
         } detail: {
-            VStack(spacing: 0) {
-                SyncStatusBanner()
                 detalheView
                     .id(selection)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .safeAreaInset(edge: .top, spacing: 0) {
+                        SyncStatusBanner()
+                    }
             }
-        }
         .background {
             FundoTecnologicoView()
         }
@@ -101,11 +101,13 @@ struct MainView: View {
                     BadgeAppView(texto: "Local", cor: .orange)
                 }
             }
+            .semFundoAutomatico()
             ToolbarItem(placement: .automatic) {
                 if let papel = auth.papelAtual {
                     BadgeAppView(texto: papel.rotuloExibicao, cor: papel.cor, amplo: true)
                 }
             }
+            .semFundoAutomatico()
             ToolbarItem(placement: .automatic) {
                 if auth.estaLogado {
                     Menu {
