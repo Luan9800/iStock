@@ -252,6 +252,22 @@ struct ProdutoCardView: View {
         }
         .padding(14)
         .frame(minHeight: 170)
+        #if os(macOS)
+        .background {
+            RoundedRectangle(cornerRadius: AppTheme.radiusCard, style: .continuous)
+                .fill(AppTheme.gradienteSecao(AppTheme.azulClaro))
+        }
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.radiusCard, style: .continuous)
+                .stroke(
+                    item.estaHaMuitoTempoNoEstoque
+                        ? AppTheme.vermelho.opacity(0.55)
+                        : AppTheme.azulClaro.opacity(0.35),
+                    lineWidth: item.estaHaMuitoTempoNoEstoque ? 2 : 1
+                )
+        )
+        .sombraProdutoCardWEB()
+        #else
         .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -260,6 +276,7 @@ struct ProdutoCardView: View {
                     lineWidth: item.estaHaMuitoTempoNoEstoque ? 2 : 1
                 )
         )
+        #endif
     }
 }
 

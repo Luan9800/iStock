@@ -22,6 +22,14 @@ struct RelatoriosView: View {
 
     private let colunas = [GridItem(.adaptive(minimum: 200), spacing: 14)]
 
+    private var estiloCartao: CartaoEstilo {
+        #if os(macOS)
+        .relatorio
+        #else
+        .padrao
+        #endif
+    }
+
     var body: some View {
         LayoutTelaView(
             titulo: "Relatórios",
@@ -85,7 +93,7 @@ struct RelatoriosView: View {
 
     @ViewBuilder
     private func resumoFinanceiro(_ relatorio: RelatorioFinanceiro) -> some View {
-        CartaoVidroView {
+        CartaoVidroView(estilo: estiloCartao) {
             VStack(alignment: .leading, spacing: 14) {
                 Text("Período de \(RelatorioAnaliseService.diasPeriodoRelatorio) dias")
                     .font(.headline)
@@ -106,7 +114,7 @@ struct RelatoriosView: View {
     @ViewBuilder
     private func avaliacoesValores(_ relatorio: RelatorioFinanceiro) -> some View {
         if !relatorio.avaliacoesValores.isEmpty {
-            CartaoVidroView {
+            CartaoVidroView(estilo: estiloCartao) {
                 VStack(alignment: .leading, spacing: 12) {
                     Label("Avaliações — estimativa, compra e venda real", systemImage: "chart.line.uptrend.xyaxis")
                         .font(.headline)
@@ -153,7 +161,7 @@ struct RelatoriosView: View {
     @ViewBuilder
     private func comprasRecusadas(_ relatorio: RelatorioFinanceiro) -> some View {
         if !relatorio.recusasNoPeriodo.isEmpty {
-            CartaoVidroView {
+            CartaoVidroView(estilo: estiloCartao) {
                 VStack(alignment: .leading, spacing: 12) {
                     Label("Compras não aprovadas", systemImage: "xmark.seal.fill")
                         .font(.headline)
@@ -192,7 +200,7 @@ struct RelatoriosView: View {
 
     @ViewBuilder
     private func sugestoes(_ relatorio: RelatorioFinanceiro) -> some View {
-        CartaoVidroView {
+        CartaoVidroView(estilo: estiloCartao) {
             VStack(alignment: .leading, spacing: 12) {
                 Label("O que melhorar", systemImage: "lightbulb.fill")
                     .font(.headline)
@@ -221,7 +229,7 @@ struct RelatoriosView: View {
     @ViewBuilder
     private func estoquePorCategoria(_ relatorio: RelatorioFinanceiro) -> some View {
         if !relatorio.estoquePorCategoria.isEmpty {
-            CartaoVidroView {
+            CartaoVidroView(estilo: estiloCartao) {
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Estoque por categoria")
                         .font(.headline)
@@ -243,7 +251,7 @@ struct RelatoriosView: View {
     }
 
     private var secaoPDFs: some View {
-        CartaoVidroView {
+        CartaoVidroView(estilo: estiloCartao) {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Relatórios PDF gerados")
                     .font(.headline)
@@ -305,7 +313,20 @@ struct RelatoriosView: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
+        #if os(macOS)
+        .background {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.white.opacity(0.06))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color(red: 1.0, green: 0.388, blue: 0.388).opacity(0.25), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.22), radius: 12, x: 0, y: 10)
+        .shadow(color: Color(red: 1.0, green: 0.388, blue: 0.388).opacity(0.2), radius: 10, x: 0, y: 8)
+        #else
         .background(Color.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 12))
+        #endif
     }
 
     private func gerarPDF() {

@@ -323,11 +323,23 @@ struct CartaoAvaliadoPainelView: View {
             }
         }
         .padding(14)
+        #if os(macOS)
+        .background {
+            RoundedRectangle(cornerRadius: AppTheme.radiusCard, style: .continuous)
+                .fill(AppTheme.gradienteSecao(AppTheme.mint))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: AppTheme.radiusCard, style: .continuous)
+                .stroke(AppTheme.mint.opacity(0.38), lineWidth: 1)
+        }
+        .sombraCardWEB(accent: AppTheme.mint, glow: 0.22)
+        #else
         .background(Color.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .stroke(Color.white.opacity(0.1), lineWidth: 1)
         }
+        #endif
     }
 }
 

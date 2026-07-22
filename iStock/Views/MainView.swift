@@ -78,49 +78,14 @@ struct MainView: View {
     }
 
     var body: some View {
-        NavigationSplitView {
-            sidebar
-        } detail: {
-                detalheView
-                    .id(selection)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .safeAreaInset(edge: .top, spacing: 0) {
-                        SyncStatusBanner()
-                    }
-            }
-        .background {
-            FundoTecnologicoView()
+        Group {
+            #if os(macOS)
+            layoutMac
+            #else
+            layoutIOS
+            #endif
         }
-        #if os(macOS)
-        .frame(minWidth: 900, minHeight: 600)
-        #endif
         .preferredColorScheme(.dark)
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
-                if auth.estaLogado && auth.usandoLoginLocal {
-                    BadgeAppView(texto: "Local", cor: .orange)
-                }
-            }
-            .semFundoAutomatico()
-            ToolbarItem(placement: .automatic) {
-                if let papel = auth.papelAtual {
-                    BadgeAppView(texto: papel.rotuloExibicao, cor: papel.cor, amplo: true)
-                }
-            }
-            .semFundoAutomatico()
-            ToolbarItem(placement: .automatic) {
-                if auth.estaLogado {
-                    Menu {
-                        Button("Sair", role: .destructive) { auth.sair() }
-                        Button("Excluir conta", role: .destructive) { mostrandoExclusao = true }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .foregroundStyle(AppTheme.azulClaro)
-                    }
-                    .menuStyle(.borderlessButton)
-                }
-            }
-        }
         .sheet(isPresented: $mostrandoExclusao) {
             ExcluirContaView()
         }
@@ -147,7 +112,214 @@ struct MainView: View {
         }
     }
 
-    private var sidebar: some View {
+    // MARK: - macOS (espelha MainLayout WEB)
+
+    #if os(macOS)
+    private var layoutMac: some View {
+        ZStack {
+            FundoTecnologicoView()
+
+            HStack(spacing: 0) {
+                sidebarMac
+                    .frame(width: AppTheme.sidebarWidth)
+                    .frame(maxHeight: .infinity)
+
+                VStack(spacing: 0) {
+                    topbarMac
+                    detalheView
+                        .id(selection)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        }
+        .frame(minWidth: 980, minHeight: 640)
+    }
+
+    private var sidebarMac: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                Image("AppLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 32, height: 32)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                Text("iStock")
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+            }
+            .padding(.horizontal, 14)
+            .padding(.top, 16)
+            .padding(.bottom, 18)
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 4) {
+                    ForEach(abasPermitidas) { item in
+                        Button {
+                            selection = item
+                        } label: {
+                            HStack(spacing: 10) {
+                                Label(item.title, systemImage: item.symbol)
+                                    .font(.subheadline.weight(selection == item ? .semibold : .regular))
+                                    .foregroundStyle(selection == item ? .white : .white.opacity(0.65))
+                                Spacer(minLength: 4)
+                                badgeSidebar(para: item)
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 11)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background {
+                                if selection == item {
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .fill(AppTheme.gradienteBotao)
+                                }
+                            }
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .stroke(
+                                        selection == item ? AppTheme.azulClaro.opacity(0.4) : .clear,
+                                        lineWidth: 1
+                                    )
+                            }
+                            .shadow(
+                                color: selection == item ? AppTheme.azulPrimario.opacity(0.28) : .clear,
+                                radius: 10,
+                                y: 4
+                            )
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 10)
+            }
+
+            Spacer(minLength: 12)
+
+            Button {
+                mostrandoExclusao = true
+            } label: {
+                Label("Excluir conta", systemImage: "trash")
+                    .font(.subheadline)
+                    .foregroundStyle(AppTheme.vermelho.opacity(0.9))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 11)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, 10)
+            .padding(.bottom, 16)
+        }
+        .background {
+            PainelSidebarView()
+        }
+        .overlay(alignment: .trailing) {
+            Rectangle()
+                .fill(Color.white.opacity(0.06))
+                .frame(width: 1)
+        }
+    }
+
+    private var topbarMac: some View {
+        HStack(spacing: 12) {
+            Spacer(minLength: 0)
+
+            SyncStatusBanner()
+                .frame(maxWidth: 320)
+
+            if auth.estaLogado && auth.usandoLoginLocal {
+                BadgeAppView(texto: "Local", cor: AppTheme.laranja)
+            }
+
+            if let papel = auth.papelAtual {
+                BadgeAppView(texto: papel.rotuloExibicao, cor: papel.corMac, amplo: true)
+            }
+
+            Button {
+                auth.sair()
+            } label: {
+                Label("Sair", systemImage: "rectangle.portrait.and.arrow.right")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(AppTheme.azulClaro)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+    }
+
+    @ViewBuilder
+    private func badgeSidebar(para item: SidebarItem) -> some View {
+        if item == .painel && !notificacoesPainel.naoLidas.isEmpty {
+            Image(systemName: "bell.fill")
+                .font(.caption)
+                .foregroundStyle(AppTheme.laranja)
+        }
+        if item == .produtos && quantidadeParados > 0 {
+            Image(systemName: "exclamationmark.circle.fill")
+                .font(.caption)
+                .foregroundStyle(AppTheme.vermelho.opacity(0.85))
+        }
+        if item == .avaliacoes && !avaliacoes.emAvaliacao.isEmpty {
+            Image(systemName: "clock.fill")
+                .font(.caption)
+                .foregroundStyle(AppTheme.laranja)
+        }
+        if item == .avaliacoes && !avaliacoes.aprovadasSemPagamento.isEmpty {
+            Image(systemName: "banknote")
+                .font(.caption)
+                .foregroundStyle(AppTheme.laranja)
+        }
+    }
+    #endif
+
+    // MARK: - iOS (inalterado)
+
+    #if os(iOS)
+    private var layoutIOS: some View {
+        NavigationSplitView {
+            sidebarIOS
+        } detail: {
+            detalheView
+                .id(selection)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    SyncStatusBanner()
+                }
+        }
+        .background {
+            FundoTecnologicoView()
+        }
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                if auth.estaLogado && auth.usandoLoginLocal {
+                    BadgeAppView(texto: "Local", cor: .orange)
+                }
+            }
+            .semFundoAutomatico()
+            ToolbarItem(placement: .automatic) {
+                if let papel = auth.papelAtual {
+                    BadgeAppView(texto: papel.rotuloExibicao, cor: papel.cor, amplo: true)
+                }
+            }
+            .semFundoAutomatico()
+            ToolbarItem(placement: .automatic) {
+                if auth.estaLogado {
+                    Menu {
+                        Button("Sair", role: .destructive) { auth.sair() }
+                        Button("Excluir conta", role: .destructive) { mostrandoExclusao = true }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .foregroundStyle(AppTheme.azulClaro)
+                    }
+                    .menuStyle(.borderlessButton)
+                }
+            }
+        }
+    }
+
+    private var sidebarIOS: some View {
         List {
             ForEach(abasPermitidas) { item in
                 Button {
@@ -194,21 +366,8 @@ struct MainView: View {
         .scrollContentBackground(.hidden)
         .background(PainelSidebarView())
         .navigationTitle("iStock")
-        #if os(macOS)
-        .navigationSplitViewColumnWidth(min: 180, ideal: 220, max: 280)
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
-                HStack(spacing: 8) {
-                    Image("AppLogo")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 22, height: 22)
-                        .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
-                }
-            }
-        }
-        #endif
     }
+    #endif
 
     @ViewBuilder
     private var detalheView: some View {
@@ -236,6 +395,18 @@ struct MainView: View {
         }
     }
 }
+
+#if os(macOS)
+private extension PapelUsuario {
+    var corMac: Color {
+        switch self {
+        case .administrador: return AppTheme.mint
+        case .consultorVendas: return AppTheme.azulClaro
+        case .cliente: return AppTheme.laranja
+        }
+    }
+}
+#endif
 
 #Preview {
     MainView()

@@ -48,6 +48,7 @@ struct ChatView: View {
                     }
                     .padding()
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .onChange(of: chatService.mensagens.count) { _, _ in
                     if let ultima = chatService.mensagens.last?.id {
                         withAnimation { proxy.scrollTo(ultima, anchor: .bottom) }
@@ -56,93 +57,31 @@ struct ChatView: View {
             }
 
             if gravador.gravando {
-                HStack {
+                HStack(spacing: 10) {
                     Image(systemName: "mic.fill")
                         .foregroundStyle(.red)
                     Text("Gravando... \(Int(gravador.duracao))s")
                         .font(.subheadline)
                         .foregroundStyle(.white)
-                    Spacer()
+                    Spacer(minLength: 8)
                     Button("Cancelar") { gravador.cancelar() }
-                        .buttonStyle(.borderless)
+                        .buttonStyle(.plain)
                         .foregroundStyle(.white.opacity(0.7))
                     Button("Enviar") { Task { await enviarAudio() } }
-                        .buttonStyle(.borderedProminent)
-                        .tint(AppTheme.azulPrimario)
+                        .buttonStyle(.plain)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.azulClaro)
                 }
-                .padding()
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
                 .background(Color.red.opacity(0.15))
             }
 
-            HStack(spacing: 12) {
-                #if os(iOS)
-                PhotosPicker(selection: $selectedItem, matching: .images) {
-                    Image(systemName: "photo")
-                        .font(.title3)
-                        .foregroundStyle(AppTheme.azulClaro)
-                }
-                .onChange(of: selectedItem) { _, item in
-                    Task { await enviarFoto(from: item) }
-                }
-                #else
-                Button { showingFileImporter = true } label: {
-                    Image(systemName: "photo")
-                        .font(.title3)
-                        .foregroundStyle(AppTheme.azulClaro)
-                }
-                .fileImporter(isPresented: $showingFileImporter, allowedContentTypes: [.image]) { result in
-                    if case .success(let url) = result,
-                       url.startAccessingSecurityScopedResource() {
-                        defer { url.stopAccessingSecurityScopedResource() }
-                        if let data = try? Data(contentsOf: url) {
-                            Task { await enviarFotoData(data) }
-                        }
-                    }
-                }
-                #endif
-
-                Button {
-                    if gravador.gravando {
-                        Task { await enviarAudio() }
-                    } else {
-                        gravador.iniciar()
-                    }
-                } label: {
-                    Image(systemName: gravador.gravando ? "stop.circle.fill" : "mic")
-                        .font(.title3)
-                        .foregroundStyle(gravador.gravando ? .red : AppTheme.azulClaro)
-                }
-
-                TextField("Mensagem...", text: $texto)
-                    .textFieldStyle(.plain)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .foregroundStyle(.white)
-                    #if os(iOS)
-                    .textInputAutocapitalization(.sentences)
-                    #endif
-
-                Button {
-                    Task { await enviarTexto() }
-                } label: {
-                    Image(systemName: "paperplane.fill")
-                        .font(.title3)
-                        .foregroundStyle(
-                            texto.trimmingCharacters(in: .whitespaces).isEmpty || enviando
-                                ? .white.opacity(0.3)
-                                : AppTheme.azulClaro
-                        )
-                }
-                .disabled(texto.trimmingCharacters(in: .whitespaces).isEmpty || enviando)
-            }
-            .padding()
-            .background(Color.white.opacity(0.06))
-            .overlay(alignment: .top) {
-                Rectangle()
-                    .fill(Color.white.opacity(0.1))
-                    .frame(height: 1)
-            }
+            #if os(macOS)
+            barraEntradaMac
+            #else
+            barraEntradaIOS
+            #endif
         }
         .navigationTitle(conversa.clienteNome)
         #if os(iOS)
@@ -172,6 +111,140 @@ struct ChatView: View {
             player.parar()
         }
     }
+
+    #if os(macOS)
+    private var barraEntradaMac: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Button { showingFileImporter = true } label: {
+                Image(systemName: "photo")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(AppTheme.azulClaro)
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.plain)
+            .fileImporter(isPresented: $showingFileImporter, allowedContentTypes: [.image]) { result in
+                if case .success(let url) = result,
+                   url.startAccessingSecurityScopedResource() {
+                    defer { url.stopAccessingSecurityScopedResource() }
+                    if let data = try? Data(contentsOf: url) {
+                        Task { await enviarFotoData(data) }
+                    }
+                }
+            }
+
+            Button {
+                if gravador.gravando {
+                    Task { await enviarAudio() }
+                } else {
+                    gravador.iniciar()
+                }
+            } label: {
+                Image(systemName: gravador.gravando ? "stop.circle.fill" : "mic")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(gravador.gravando ? .red : AppTheme.azulClaro)
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.plain)
+
+            TextField("Mensagem...", text: $texto)
+                .textFieldStyle(.plain)
+                .font(.body)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity)
+                .frame(height: 36)
+                .background(Color.white.opacity(0.08), in: Capsule())
+                .layoutPriority(1)
+                .onSubmit {
+                    Task { await enviarTexto() }
+                }
+
+            Button {
+                Task { await enviarTexto() }
+            } label: {
+                Image(systemName: "paperplane.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 36, height: 36)
+                    .background(
+                        Circle().fill(
+                            texto.trimmingCharacters(in: .whitespaces).isEmpty || enviando
+                                ? Color.white.opacity(0.15)
+                                : AppTheme.azulPrimario
+                        )
+                    )
+            }
+            .buttonStyle(.plain)
+            .disabled(texto.trimmingCharacters(in: .whitespaces).isEmpty || enviando)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity)
+        .fixedSize(horizontal: false, vertical: true)
+        .background(Color.white.opacity(0.04))
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.white.opacity(0.08))
+                .frame(height: 1)
+        }
+    }
+    #endif
+
+    #if os(iOS)
+    private var barraEntradaIOS: some View {
+        HStack(spacing: 12) {
+            PhotosPicker(selection: $selectedItem, matching: .images) {
+                Image(systemName: "photo")
+                    .font(.title3)
+                    .foregroundStyle(AppTheme.azulClaro)
+            }
+            .onChange(of: selectedItem) { _, item in
+                Task { await enviarFoto(from: item) }
+            }
+
+            Button {
+                if gravador.gravando {
+                    Task { await enviarAudio() }
+                } else {
+                    gravador.iniciar()
+                }
+            } label: {
+                Image(systemName: gravador.gravando ? "stop.circle.fill" : "mic")
+                    .font(.title3)
+                    .foregroundStyle(gravador.gravando ? .red : AppTheme.azulClaro)
+            }
+
+            TextField("Mensagem...", text: $texto)
+                .textFieldStyle(.plain)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .foregroundStyle(.white)
+                .textInputAutocapitalization(.sentences)
+
+            Button {
+                Task { await enviarTexto() }
+            } label: {
+                Image(systemName: "paperplane.fill")
+                    .font(.title3)
+                    .foregroundStyle(
+                        texto.trimmingCharacters(in: .whitespaces).isEmpty || enviando
+                            ? .white.opacity(0.3)
+                            : AppTheme.azulClaro
+                    )
+            }
+            .disabled(texto.trimmingCharacters(in: .whitespaces).isEmpty || enviando)
+        }
+        .padding()
+        .background(Color.white.opacity(0.06))
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(Color.white.opacity(0.1))
+                .frame(height: 1)
+        }
+    }
+    #endif
 
     private func enviarTexto() async {
         guard let conversaId = conversa.id,
@@ -234,8 +307,8 @@ struct MensagemBubbleView: View {
     @ObservedObject var player: AudioPlayer
 
     var body: some View {
-        HStack {
-            if ehMinha { Spacer(minLength: 60) }
+        HStack(spacing: 0) {
+            if ehMinha { Spacer(minLength: 80) }
 
             VStack(alignment: ehMinha ? .trailing : .leading, spacing: 4) {
                 if !ehMinha {
@@ -248,28 +321,45 @@ struct MensagemBubbleView: View {
                     switch mensagem.tipo {
                     case .texto:
                         Text(mensagem.texto ?? "")
+                            .multilineTextAlignment(ehMinha ? .trailing : .leading)
                     case .foto:
                         fotoView
                     case .audio:
                         audioView
                     }
                 }
-                .padding(10)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
                 .background(
                     ehMinha
                         ? AnyShapeStyle(AppTheme.gradienteBotao)
                         : AnyShapeStyle(Color.white.opacity(0.1)),
-                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    in: UnevenRoundedRectangle(
+                        topLeadingRadius: 18,
+                        bottomLeadingRadius: ehMinha ? 18 : 4,
+                        bottomTrailingRadius: ehMinha ? 4 : 18,
+                        topTrailingRadius: 18,
+                        style: .continuous
+                    )
                 )
                 .foregroundStyle(.white)
+                #if os(macOS)
+                .shadow(
+                    color: ehMinha ? AppTheme.azulPrimario.opacity(0.25) : .clear,
+                    radius: 8,
+                    y: 4
+                )
+                #endif
 
                 Text(Formatters.dataCurta.string(from: mensagem.data))
                     .font(.caption2)
                     .foregroundStyle(.white.opacity(0.35))
             }
+            .frame(maxWidth: 320, alignment: ehMinha ? .trailing : .leading)
 
-            if !ehMinha { Spacer(minLength: 60) }
+            if !ehMinha { Spacer(minLength: 80) }
         }
+        .frame(maxWidth: .infinity, alignment: ehMinha ? .trailing : .leading)
     }
 
     @ViewBuilder

@@ -42,6 +42,9 @@ struct LoginView: View {
                 .frame(maxWidth: 440)
                 .frame(maxWidth: .infinity)
             }
+            #if os(macOS)
+            .frame(minWidth: 520, minHeight: 640)
+            #endif
         }
         .preferredColorScheme(.dark)
         .onChange(of: modoAuth) { _, _ in
@@ -76,7 +79,11 @@ struct LoginView: View {
 
             VStack(spacing: 6) {
                 Text("iStock")
+                    #if os(macOS)
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    #else
                     .font(.system(size: 34, weight: .bold, design: .rounded))
+                    #endif
                     .foregroundStyle(.white)
 
                 Text("Gestão inteligente de inventário")
